@@ -1,0 +1,2 @@
+rosbag_to_csv:vicon_bridge
+-DCATKIN_DEVEL_PREFIX=/Users/chiaravongerlach/Desktop/thesis_slotcar/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/Users/chiaravongerlach/Desktop/thesis_slotcar/catkin_ws/install -G Unix Makefiles

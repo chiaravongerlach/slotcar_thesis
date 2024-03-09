@@ -1,0 +1,2 @@
+set(vicon_bridge_MESSAGE_FILES "/Users/chiaravongerlach/Desktop/thesis_slotcar/catkin_ws/src/vicon_bridge/msg/Marker.msg;/Users/chiaravongerlach/Desktop/thesis_slotcar/catkin_ws/src/vicon_bridge/msg/Markers.msg;/Users/chiaravongerlach/Desktop/thesis_slotcar/catkin_ws/src/vicon_bridge/msg/TfDistortInfo.msg")
+set(vicon_bridge_SERVICE_FILES "/Users/chiaravongerlach/Desktop/thesis_slotcar/catkin_ws/src/vicon_bridge/srv/viconCalibrateSegment.srv;/Users/chiaravongerlach/Desktop/thesis_slotcar/catkin_ws/src/vicon_bridge/srv/viconGrabPose.srv")
