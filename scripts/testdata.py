@@ -524,7 +524,7 @@ for f in  csv_files:
     # print("angle", angle_degrees)
 
     #plot the crash 
-    ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
+    # ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
 
 
     
@@ -611,8 +611,8 @@ for f in  csv_files:
         if distance > 0.06: # and distance_1 > 0.01 and distance_2 > 0.01 :
             # print("index", i)
             # print("shape of pos", positions_reset[i])
-            ax.plot(closest_point[0], closest_point[1], closest_point[2], 'ro', markersize=10)
-            ax.plot(positions_reset[i][0], positions_reset[i][1], positions_reset[i][2], 'go', markersize = 10)
+            # ax.plot(closest_point[0], closest_point[1], closest_point[2], 'ro', markersize=10)
+            # ax.plot(positions_reset[i][0], positions_reset[i][1], positions_reset[i][2], 'go', markersize = 10)
             print("distance to spline", distance)
             # ax.plot(positions_reset[i-2][0], positions_reset[i-2][1], positions_reset[i-2][2], 'wo', markersize = 15)
             # ax.plot(positions_reset[i-1][0], positions_reset[i-1][1], positions_reset[i-1][2], 'ko', markersize = 15)
@@ -676,6 +676,21 @@ for f in  csv_files:
                     crash_vel[j].append(velocity)
                     break
             #shoudl this break be one less indented 
+            index_of_crash = i
+            data_after_crash = positions_reset[index_of_crash + 1:, :]
+            # Extracting x, y, and z coordinates
+            x_after = data_after_crash[:, 0]
+            y_after = data_after_crash[:, 1]
+            z_after = data_after_crash[:, 2]  # Assuming z is used for something else like sizing or another dimension
+            ax.scatter(x_after, y_after, z_after, color='yellow')
+
+            data_before_crash = positions_reset[:index_of_crash + 1, :]
+            x = data_before_crash[:, 0]
+            y = data_before_crash[:, 1]
+            z = data_before_crash[:, 2]  # Assuming z is used for something else like sizing or another dimension
+
+            # Plotting the scatter plot
+            ax.scatter(x, y, z, color='blue')
             break
 #print crash vel 
 print(crash_vel)
