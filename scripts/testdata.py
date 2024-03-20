@@ -7,7 +7,9 @@ from scipy.interpolate import CubicSpline
 from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import LSQUnivariateSpline
 from scipy.optimize import minimize_scalar, basinhopping
+from scipy.spatial.transform import Rotation as R
 import glob 
+import math
 from pyspline import Curve 
 
 #********** Check Sampling of data collection  **********
@@ -59,9 +61,40 @@ complete_array = complete_positions.to_numpy()
 # Numpy array that has x and y of first poiint 
 start_point = np.copy(complete_array[0, 0:2])
 
-# Make each point relative to the starting position 
-# Set origin 
-# complete_array -= complete_array[0]
+# # Make each point relative to the starting position 
+# # Set origin 
+complete_array -= complete_array[0]
+# # Normalize rotation relative to a yaw of complete array 
+for point in complete_array:
+        # find the distance between the point you are at and the beginning
+        distance_line = np.linalg.norm(point - complete_array[0])
+        #once this distance is more than 0.2 (this is why it needs to use the filtered points so that it dosn't use an outlier)
+        # then we make our vector and adjust the yaw 
+        if distance_line > 0.5:
+            vector_complete = point - complete_array[0]
+            x = vector_complete[0]
+            y = vector_complete[1]
+            # yaw = ata
+            yaw = math.atan2(y, x)
+            break
+
+# # get rotation from csv
+# x = file['.transform.rotation.x'][0]
+# y = file['.transform.rotation.y'][0]
+# z = file['.transform.rotation.z'][0]
+# w = file['.transform.rotation.w'][0]
+# #get yaw from quaternions in radians 
+# yaw=math.atan2(2 * (w*z+x*y), w*w+x*x-y*y-z*z)
+# yaw = yaw*180/math.pi
+# rotate_by = 90-yaw
+# print("yaw", yaw)
+# # make rotation matrix 
+# rotation = R.from_euler('z', rotate_by, degrees = True)
+# #rotate each point 
+# # complete_array = rotation.apply(complete_array)
+
+
+
 
 # Numpy of the time relative to starting time
 complete_time = (file['datetime'] - file['datetime'][0]).dt.total_seconds().to_numpy()
@@ -124,7 +157,7 @@ def min_distance_to_spline(point):
     bounds = [(complete_time[0], complete_time[-1])]
     kwargs = {"method": "L-BFGS-B", "bounds": bounds}
     x_init =[0]
-    res = basinhopping(distance_function, x_init, minimizer_kwargs=kwargs, niter=1000, stepsize =19)
+    res = basinhopping(distance_function, x_init, minimizer_kwargs=kwargs, niter=500, stepsize =19)
 
     # print("nit", res.nit)
     # print("res.x", res.x)
@@ -181,11 +214,11 @@ loop = np.array([[line_2[0,0],line_1[0,1]],[-0.0645, line_2[0,1]]])
 turn_2 = np.array([[line_1[0,0], 1.4731], [loop[1,0], line_1[0,1]]])
 
 # Set relative to starting point
-# line_1 -= start_point
-# turn_1 -= start_point
-# line_2 -= start_point
-# loop -= start_point
-# turn_2 -= start_point
+line_1 -= start_point
+turn_1 -= start_point
+line_2 -= start_point
+loop -= start_point
+turn_2 -= start_point
 
 # Use this to iterature through the segments later on when you wanna check what point crashed 
 segments = [line_1, turn_1, line_2, loop, turn_2]
@@ -272,7 +305,29 @@ for f in  csv_files:
     #convert time to numpy 
     #time = csv_to_numpy_array_time(df)
     #set relative to origin start point , now every run starts at 0,0,0
-    positions_reset = positions  #- positions[0]
+    positions_reset = positions - positions[0]
+
+
+    #****** old way of doing relative
+    # print("shape before", positions_reset.shape)
+    # #rotate relative to complete run 
+    # x = df['.transform.rotation.x'][0]
+    # y = df['.transform.rotation.y'][0]
+    # z = df['.transform.rotation.z'][0]
+    # w = df['.transform.rotation.w'][0]
+    # #get yaw from quaternions in radians 
+    # yaw_new=math.atan2(2 * (w*z+x*y), w*w+x*x-y*y-z*z)
+    # yaw_new = yaw_new*180/math.pi
+    # print("yaw", yaw_new)
+    # # make rotation matrix 
+    # rotation = R.from_euler('z', yaw - yaw_new, degrees = True)
+    # #rotate each point 
+    # positions_reset = rotation.apply(positions_reset)
+    # print("shape after", positions_reset.shape)
+
+ 
+
+    #FILTER
 
     #to deal with the outliers that can falsely say we crashed before we did we check the distance for each point to the point before 
     # andw the point after and if both distances are greater than 3 centimeters then we skip over this point so that we dont 
@@ -282,18 +337,43 @@ for f in  csv_files:
     filtered_time =[]
     print("length before", len(positions_reset))
 
+    ignore_filtered_points = False 
     for s in range(len(positions_reset)):
+        print("new point")
+
         if s < 2:
             filtered_points.append(positions_reset[s])
+            filtered_time.append(time_csv[s])
             continue
+        
+        if ignore_filtered_points:
+            print("call to mindist")
+            outlier_tospline_distance, time_outlier = min_distance_to_spline(positions_reset[s])
+            if (outlier_tospline_distance < .15):
+                filtered_points.append(positions_reset[s])
+                filtered_time.append(time_csv[s])
+                ignore_filtered_points = False
+                continue
 
-        vector =positions_reset[s-1] - positions_reset[s-2]
-        extra_pt = vector + positions_reset[s-1]
+        # vector =positions_reset[s-1] - positions_reset[s-2]
+        vector_between_points = filtered_points[-1] - filtered_points[-2]
+        extra_pt = vector_between_points + positions_reset[s-1]
         distance_to_extra =np.linalg.norm(positions_reset[s]-extra_pt)
-        distance_of_vector = np.linalg.norm(vector)
-        if (distance_to_extra < 0.5*distance_of_vector):
+        distance_of_vector = np.linalg.norm(vector_between_points)
+        print("distance of extra, vector", distance_to_extra, distance_of_vector)
+        if (distance_to_extra < 0.5*distance_of_vector+0.01):
             filtered_points.append(positions_reset[s])
             filtered_time.append(time_csv[s])
+            continue
+        print("call2 to mindist")
+        outlier_tospline_distance, time_outlier = min_distance_to_spline(positions_reset[s])
+        if (outlier_tospline_distance < .15):
+            filtered_points.append(positions_reset[s])
+            filtered_time.append(time_csv[s])
+            ignore_filtered_points = True
+
+
+
 
 
 
@@ -317,11 +397,55 @@ for f in  csv_files:
         if not next_outlier or not prev_outlier:
             filtered_points.append(positions_reset[s])
         """
-
+    
     # filtered points 
     positions_reset = np.array(filtered_points)
     updated_time = np.array(filtered_time)
     print("len after", len(positions_reset))
+
+    # find a straight segment in the path of the first line segment and make a line between the two points. then find the yaw of that 
+    # and make the starting position of that yaw the same as the starting position of the complete run yaw 
+    for point in positions_reset:
+        # find the distance between the point you are at and the beginning
+        distance_line = np.linalg.norm(point - positions_reset[0])
+        #once this distance is more than 0.2 (this is why it needs to use the filtered points so that it dosn't use an outlier)
+        # then we make our vector and adjust the yaw 
+        if distance_line > 0.5:
+            vector_csv = point - positions_reset[0]
+            x = vector_csv[0]
+            y = vector_csv[1]
+            # yaw = ata
+            # yaw_new = math.atan2(y, x)
+            # make rotation matrix 
+            # rotation = R.from_euler('z', yaw - yaw_new)
+            break
+    # rotate each point 
+    # positions_reset = rotation.apply(positions_reset)
+    # normalize vector and vector_csv 
+    vector_norm = vector_complete / np.linalg.norm(vector_complete)
+    vector_norm_csv = vector_csv /np.linalg.norm(vector_csv)
+    print("vector norm", vector_norm, vector_norm_csv)
+    #cross product of the two vectors to get the axis of rotation (that is perpendicular to both)
+    axis_rot = np.cross(vector_norm, vector_norm_csv)
+    # create rotation matrix 
+    #normalize axis of rotation
+    axis_rot_norm = axis_rot / np.linalg.norm(axis_rot)
+    # angle to rotate by 
+    angle = np.arccos(np.dot(vector_norm, vector_norm_csv))
+    angle_degrees = angle* 180 / math.pi
+    #rotation vector
+    #length of vector is the angle of rotation 
+    #direction of vector is the axis that we rotate by 
+    rotation_vector = -angle * axis_rot_norm
+    rotation_axis = R.from_rotvec(rotation_vector)
+    positions_reset = rotation_axis.apply(positions_reset)
+    print("rotation vcector", rotation_vector)
+    print("angle", angle_degrees)
+    
+
+
+
+    
 
 
 
