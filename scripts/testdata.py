@@ -355,49 +355,20 @@ for f in  csv_files:
 
     #FILTER
 
+    
+
     #to deal with the outliers that can falsely say we crashed before we did we check the distance for each point to the point before 
     # andw the point after and if both distances are greater than 3 centimeters then we skip over this point so that we dont 
     # count that as the crash 
 
     #Duy : outliers
 
-    filtered_points = []
-    filtered_time =[]
-    print("length before", len(positions_reset))
+    # filtered_points = []
+    # filtered_time =[]
+    # print("length before", len(positions_reset))
 
-    ignore_filtered_points = False 
-    for s in range(len(positions_reset)):
-
-
-        # print("new point")
-        if s < 2:
-            filtered_points.append(positions_reset[s])
-            filtered_time.append(time_csv[s])
-            continue
-        
+    # ignore_filtered_points = False 
     
-
-        vector_between_points = filtered_points[-1] - filtered_points[-2]
-        extra_pt = vector_between_points + positions_reset[s-1]
-        distance_to_extra =np.linalg.norm(positions_reset[s]-extra_pt)
-        distance_of_vector = np.linalg.norm(vector_between_points)
-        # print("distance of extra, vector", distance_to_extra, distance_of_vector)
-        if (distance_to_extra < 0.5*distance_of_vector+0.01):
-            filtered_points.append(positions_reset[s])
-            filtered_time.append(time_csv[s])
-        else:
-            outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[s])
-            print("distance of point", positions_reset[s], outlier_tospline_distance)
-            if (outlier_tospline_distance < .002):
-                filtered_points.append(positions_reset[s])
-                filtered_time.append(time_csv[s])
-
-
-
-
-
-
-
 
 
 
@@ -428,10 +399,10 @@ for f in  csv_files:
         #     ignore_filtered_points = True
 
     # filtered points 
-    positions_reset = np.array(filtered_points)
-    updated_time = np.array(filtered_time)
-    print("len after", len(positions_reset))  
-    print("point at index ", positions_reset[-5:])
+    # positions_reset = np.array(filtered_points)
+    # updated_time = np.array(filtered_time)
+    # print("len after", len(positions_reset))  
+    # print("point at index ", positions_reset[-5:])
 
 
 
@@ -513,6 +484,47 @@ for f in  csv_files:
     # go through every point and see how far you are from the spline 
 
     for i in range(len(positions_reset)):
+
+
+        if i > 2:
+            vector_between_points = positions_reset[i-1] - positions_reset[i-2]
+            extra_pt = vector_between_points + positions_reset[i-1]
+            distance_to_extra =np.linalg.norm(positions_reset[i]-extra_pt)
+            distance_of_vector = np.linalg.norm(vector_between_points)
+            # print("distance of extra, vector", distance_to_extra, distance_of_vector)
+            if (distance_to_extra < 0.5*distance_of_vector+0.01):
+                filtered_points.append(positions_reset[i])
+                filtered_time.append(time_csv[i])
+
+
+
+
+        # FILTERING 
+        if i < 2:
+
+            filtered_points.append(positions_reset[i])
+            filtered_time.append(time_csv[i])
+            continue
+        
+    
+
+        vector_between_points = filtered_points[-1] - filtered_points[-2]
+        extra_pt = vector_between_points + positions_reset[i-1]
+        distance_to_extra =np.linalg.norm(positions_reset[i]-extra_pt)
+        distance_of_vector = np.linalg.norm(vector_between_points)
+        # print("distance of extra, vector", distance_to_extra, distance_of_vector)
+        if (distance_to_extra < 0.5*distance_of_vector+0.01):
+            filtered_points.append(positions_reset[i])
+            filtered_time.append(time_csv[i])
+        else:
+            outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[i])
+            print("distance of point", positions_reset[i], outlier_tospline_distance)
+            if (outlier_tospline_distance < .03):
+                filtered_points.append(positions_reset[i])
+                filtered_time.append(time_csv[i])
+
+
+
         #print("shape of point", positions_reset[i].shape)
         
 
@@ -569,7 +581,7 @@ for f in  csv_files:
             distance_traveled = 0
             pos = 0
             for r in range(i-11,i-9):
-                time_total += updated_time[r]
+                time_total += time_csv[r]
                 distance_traveled += np.linalg.norm(positions_reset[r] - positions_reset[r+1])
                 print("test")
                 
@@ -580,7 +592,7 @@ for f in  csv_files:
             #     pos += np.linalg.norm(positions_reset[r+1] - positions_reset[r]) / time[r]
             # velocity = pos /5
             #for one velocity 
-            time_diff = updated_time[i-11] - updated_time[i-8]
+            time_diff = time_csv[i-11] - time_csv[i-8]
             velocity = distance_traveled/ time_diff
          
 
