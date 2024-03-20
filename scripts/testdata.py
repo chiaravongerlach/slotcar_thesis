@@ -116,9 +116,7 @@ file['v_magnitude'] = np.sqrt(file['vx']**2 + file['vy']**2 + file['vz']**2)
 #see the first five rows
 # print(file.head())
 
-#********** Curve Spline **********
-# Create Curve curve spline of the complete array  
-curve = Curve(X = complete_array, k =4)
+
 
 
 #********** LSQUnivariate Spline **********
@@ -131,6 +129,12 @@ yspline = LSQUnivariateSpline(complete_time, complete_array[:,1], knots)
 # z spline 
 zspline = LSQUnivariateSpline(complete_time, complete_array[:,2], knots)
 
+#********** Curve Spline **********
+# Create Curve curve spline of the complete array  
+
+curve_time = np.arange(complete_time[0], complete_time[-1], 0.001)
+curve = Curve(x=xspline(curve_time), y=yspline(curve_time), z=zspline(curve_time), k=4)
+
 #********** Distance between point x,y,z and LSQUnivariate Spline  **********
 def distancespline_function(t, x, y, z): 
     x_t = xspline(t)
@@ -141,25 +145,32 @@ def distancespline_function(t, x, y, z):
 #********** Returns minimum distance from point to complete spline   **********
 # call min_distance_to_spline with the point on my multiple runs csv file that i want to find the shortest distance to my spline 
 def min_distance_to_spline(point):
-    x, y, z = point
+    closest_point, distance_array = curve.projectPoint(point)
+    distance = np.linalg.norm(distance_array)
+    return distance
 
-    def distance_function(t): 
-        x_t = xspline(t)
-        y_t = yspline(t)
-        z_t = zspline(t)
-        return np.sqrt((x_t-x)**2 + (y_t-y)**2 + (z_t-z)**2)
+
+
+    ######## 
+    # x, y, z = point
+
+    # def distance_function(t): 
+    #     x_t = xspline(t)
+    #     y_t = yspline(t)
+    #     z_t = zspline(t)
+    #     return np.sqrt((x_t-x)**2 + (y_t-y)**2 + (z_t-z)**2)
     # black box optimization
 
     #minimize scalar 
     # res = minimize_scalar(distance_function, bounds = t_bounds, method='bounded', options={'maxiter': 5000}, bracket = (4,5))
     # global minimizer 
 
-    bounds = [(complete_time[0], complete_time[-1])]
-    kwargs = {"method": "L-BFGS-B", "bounds": bounds}
-    x_init =[0]
-    # res = differential_evolution(distance_function, bounds)
+    # bounds = [(complete_time[0], complete_time[-1])]
+    # kwargs = {"method": "L-BFGS-B", "bounds": bounds}
+    # x_init =[0]
+    # # res = differential_evolution(distance_function, bounds)
     # time, fval, _, _ = fminbound(distance_function, 4, 6, full_output = 1)
-    res = basinhopping(distance_function, x_init, minimizer_kwargs=kwargs, niter=500, stepsize =19)
+    # res = basinhopping(distance_function, x_init, minimizer_kwargs=kwargs, niter=500, stepsize =19)
     # intervals = [(0, 3), (2, 5), (4, 6), (6, complete_time[-1])]
     # minimum_distance = np.inf
     # min_time = 0
@@ -187,7 +198,7 @@ def min_distance_to_spline(point):
     # print("spline at time", xspline(res.x), yspline(res.x), zspline(res.x))
     #return res.fun, res.x
     # return minimum_distance, min_time
-    return res.fun, res.x
+    
 
 
 #********** Function to draw each segement of the track  **********
@@ -268,12 +279,13 @@ draw_rectangle(ax, loop, z=0)
 #make time vector 
 plot_time = np.arange(t_bounds[0], t_bounds[1], 0.01)
 #Plot LSQUnivariate Spline
-ax.plot(xspline(plot_time), yspline(plot_time), zspline(plot_time))
+#compare
+# ax.plot(xspline(plot_time), yspline(plot_time), zspline(plot_time))
 #Plot Curve Spline
-# s_values = np.linspace(0,1, 1000)
-# curve_points = np.array([curve.getValue(s) for s in s_values])
+s_values = np.linspace(0,1, 1000)
+curve_points = np.array([curve.getValue(s) for s in s_values])
 # #evaluate spline at every plot time 
-# ax.plot(curve_points[:, 0], curve_points[:,1], curve_points[:,2])
+ax.plot(curve_points[:, 0], curve_points[:,1], curve_points[:,2])
 
 #********** Returns True if point is in segment  **********
 def is_in_segment(point, segment):
@@ -318,6 +330,7 @@ for f in  csv_files:
     #time = csv_to_numpy_array_time(df)
     #set relative to origin start point , now every run starts at 0,0,0
     positions_reset = positions - positions[0]
+    
 
 
     #****** old way of doing relative
@@ -362,7 +375,7 @@ for f in  csv_files:
         
         if ignore_filtered_points:
             print("call to mindist")
-            outlier_tospline_distance, time_outlier = min_distance_to_spline(positions_reset[s])
+            outlier_tospline_distance = min_distance_to_spline(positions_reset[s])
             if (outlier_tospline_distance < .15):
                 filtered_points.append(positions_reset[s])
                 filtered_time.append(time_csv[s])
@@ -380,7 +393,7 @@ for f in  csv_files:
             filtered_time.append(time_csv[s])
             continue
         print("call2 to mindist")
-        outlier_tospline_distance, time_outlier = min_distance_to_spline(positions_reset[s])
+        outlier_tospline_distance = min_distance_to_spline(positions_reset[s])
         if (outlier_tospline_distance < .15):
             filtered_points.append(positions_reset[s])
             filtered_time.append(time_csv[s])
@@ -455,6 +468,11 @@ for f in  csv_files:
     positions_reset = rotation_axis.apply(positions_reset)
     print("rotation vcector", rotation_vector)
     print("angle", angle_degrees)
+
+    #plot the crash 
+    ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
+
+
     
 
 
@@ -470,7 +488,7 @@ for f in  csv_files:
         
 
     
-        # #curve
+        #curve
         # closest_point, distance_array = curve.projectPoint(positions_reset[i])
         # distance = np.linalg.norm(distance_array)
         # print(" distance array", distance_array)
@@ -484,9 +502,9 @@ for f in  csv_files:
 
 
         #lsq
-        print("point we call distance function on", positions_reset[i])
-        distance, time_crash = min_distance_to_spline(positions_reset[i])
-        print("distance of that point", distance)
+        # print("point we call distance function on", positions_reset[i])
+        distance = min_distance_to_spline(positions_reset[i])
+        # print("distance of that point", distance)
       
         # print("**********************")
         
@@ -495,9 +513,9 @@ for f in  csv_files:
         # print("spline y at that time  =  %s" % yspline(time[i]))
         # print("spline z at that time  =  %s" % zspline(time[i]))
         #check if distance is over threshold, 5 cm
-        if distance > 0.1: # and distance_1 > 0.01 and distance_2 > 0.01 :
+        if distance > 0.06: # and distance_1 > 0.01 and distance_2 > 0.01 :
             print("shape of pos", positions_reset[i])
-            ax.plot(xspline(time_crash), yspline(time_crash), zspline(time_crash), 'ro', markersize=10)
+            # ax.plot(xspline(time_crash), yspline(time_crash), zspline(time_crash), 'ro', markersize=10)
             ax.plot(positions_reset[i][0], positions_reset[i][1], positions_reset[i][2], 'go', markersize = 10)
             print("distance to spline", distance)
     
@@ -534,8 +552,7 @@ for f in  csv_files:
             
             #get the velocity a few time steps before 
 
-            #plot the crash 
-            ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
+            
 
 
 
@@ -559,12 +576,11 @@ for zone in crash_vel:
 
 
 
-# # find arbitrary point 
-# pt = np.array([-0.41773691, -0.50486215, -0.00654526])
-# print("shape of arb", pt.shape)
-# distance_to_arbitrary, time = min_distance_to_spline(pt)
-# ax.plot(pt[0], pt[1], pt[2], 'go')
-# print("distance", distance_to_arbitrary, time)
+# find arbitrary point 
+pt = np.array([-0.41773691, -0.50486215, -0.00654526])
+distance_to_arbitrary = min_distance_to_spline(pt)
+ax.plot(pt[0], pt[1], pt[2], 'ko')
+print("distance", distance_to_arbitrary)
     
     
 
