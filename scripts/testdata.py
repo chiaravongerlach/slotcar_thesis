@@ -363,46 +363,45 @@ for f in  csv_files:
 
     #Duy : outliers
 
-    # filtered_points = []
-    # filtered_time =[]
-    # print("length before", len(positions_reset))
-
-    # ignore_filtered_points = False 
+    # filtered points 
     
 
+    filtered_points = []
+    filtered_time =[]
+    print("length before", len(positions_reset))
+
+    ignore_filtered_points = False 
+    for s in range(len(positions_reset)):
 
 
-        # if ignore_filtered_points:
-        #     # print("call to mindist")
-        #     outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[s])
-        #     if (outlier_tospline_distance < .1):
-        #         # filtered_points.append(positions_reset[s])
-        #         filtered_time.append(time_csv[s])
-        #         ignore_filtered_points = False
-        #         continue
+        # print("new point")
+        if s < 2:
+            filtered_points.append(positions_reset[s])
+            filtered_time.append(time_csv[s])
+            continue
+        
+    
 
-        # # vector =positions_reset[s-1] - positions_reset[s-2]
-        # vector_between_points = filtered_points[-1] - filtered_points[-2]
-        # extra_pt = vector_between_points + positions_reset[s-1]
-        # distance_to_extra =np.linalg.norm(positions_reset[s]-extra_pt)
-        # distance_of_vector = np.linalg.norm(vector_between_points)
-        # # print("distance of extra, vector", distance_to_extra, distance_of_vector)
-        # if (distance_to_extra < 0.5*distance_of_vector+0.01):
-        #     filtered_points.append(positions_reset[s])
-        #     filtered_time.append(time_csv[s])
-        #     continue
-        # # print("call2 to mindist")
-        # outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[s])
-        # if (outlier_tospline_distance < .05):
-        #     filtered_points.append(positions_reset[s])
-        #     filtered_time.append(time_csv[s])
-        #     ignore_filtered_points = True
+        vector_between_points = filtered_points[-1] - filtered_points[-2]
+        extra_pt = vector_between_points + filtered_points[-1]
+        distance_to_extra =np.linalg.norm(positions_reset[s]-extra_pt)
+        distance_of_vector = np.linalg.norm(vector_between_points)
+        # print("distance of extra, vector", distance_to_extra, distance_of_vector)
+        if (distance_to_extra < 0.5*distance_of_vector+0.01):
+            filtered_points.append(positions_reset[s])
+            filtered_time.append(time_csv[s])
+        else:
+            outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[s])
+            print("distance of point", positions_reset[s], outlier_tospline_distance)
+            if (outlier_tospline_distance < .05):
+                filtered_points.append(positions_reset[s])
+                filtered_time.append(time_csv[s])
 
-    # filtered points 
-    # positions_reset = np.array(filtered_points)
-    # updated_time = np.array(filtered_time)
-    # print("len after", len(positions_reset))  
-    # print("point at index ", positions_reset[-5:])
+
+    positions_reset = np.array(filtered_points)
+    updated_time = np.array(filtered_time)
+    print("len after", len(positions_reset))  
+    print("point at index ", positions_reset[-5:])
 
 
 
@@ -486,42 +485,42 @@ for f in  csv_files:
     for i in range(len(positions_reset)):
 
 
-        if i > 2:
-            vector_between_points = positions_reset[i-1] - positions_reset[i-2]
-            extra_pt = vector_between_points + positions_reset[i-1]
-            distance_to_extra =np.linalg.norm(positions_reset[i]-extra_pt)
-            distance_of_vector = np.linalg.norm(vector_between_points)
-            # print("distance of extra, vector", distance_to_extra, distance_of_vector)
-            if (distance_to_extra < 0.5*distance_of_vector+0.01):
-                filtered_points.append(positions_reset[i])
-                filtered_time.append(time_csv[i])
+        # if i > 2:
+        #     vector_between_points = positions_reset[i-1] - positions_reset[i-2]
+        #     extra_pt = vector_between_points + positions_reset[i-1]
+        #     distance_to_extra =np.linalg.norm(positions_reset[i]-extra_pt)
+        #     distance_of_vector = np.linalg.norm(vector_between_points)
+        #     # print("distance of extra, vector", distance_to_extra, distance_of_vector)
+        #     if (distance_to_extra < 0.5*distance_of_vector+0.01):
+        #         filtered_points.append(positions_reset[i])
+        #         filtered_time.append(time_csv[i])
 
 
 
 
-        # FILTERING 
-        if i < 2:
+        # # FILTERING 
+        # if i < 2:
 
-            filtered_points.append(positions_reset[i])
-            filtered_time.append(time_csv[i])
-            continue
+        #     filtered_points.append(positions_reset[i])
+        #     filtered_time.append(time_csv[i])
+        #     continue
         
     
 
-        vector_between_points = filtered_points[-1] - filtered_points[-2]
-        extra_pt = vector_between_points + positions_reset[i-1]
-        distance_to_extra =np.linalg.norm(positions_reset[i]-extra_pt)
-        distance_of_vector = np.linalg.norm(vector_between_points)
-        # print("distance of extra, vector", distance_to_extra, distance_of_vector)
-        if (distance_to_extra < 0.5*distance_of_vector+0.01):
-            filtered_points.append(positions_reset[i])
-            filtered_time.append(time_csv[i])
-        else:
-            outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[i])
-            print("distance of point", positions_reset[i], outlier_tospline_distance)
-            if (outlier_tospline_distance < .03):
-                filtered_points.append(positions_reset[i])
-                filtered_time.append(time_csv[i])
+        # vector_between_points = filtered_points[-1] - filtered_points[-2]
+        # extra_pt = vector_between_points + positions_reset[i-1]
+        # distance_to_extra =np.linalg.norm(positions_reset[i]-extra_pt)
+        # distance_of_vector = np.linalg.norm(vector_between_points)
+        # # print("distance of extra, vector", distance_to_extra, distance_of_vector)
+        # if (distance_to_extra < 0.5*distance_of_vector+0.01):
+        #     filtered_points.append(positions_reset[i])
+        #     filtered_time.append(time_csv[i])
+        # else:
+        #     outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[i])
+        #     print("distance of point", positions_reset[i], outlier_tospline_distance)
+        #     if (outlier_tospline_distance < .03):
+        #         filtered_points.append(positions_reset[i])
+        #         filtered_time.append(time_csv[i])
 
 
 
