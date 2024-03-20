@@ -379,6 +379,14 @@ for f in  csv_files:
             filtered_points.append(positions_reset[s])
             filtered_time.append(time_csv[s])
             continue
+        if ignore_filtered_points:
+            print("call to mindist")
+            outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[s])
+            if (outlier_tospline_distance < .15):
+                filtered_points.append(positions_reset[s])
+                filtered_time.append(time_csv[s])
+                ignore_filtered_points = False
+                continue
         
     
 
@@ -396,6 +404,7 @@ for f in  csv_files:
             if (outlier_tospline_distance < .05):
                 filtered_points.append(positions_reset[s])
                 filtered_time.append(time_csv[s])
+                ignore_filtered_points = True
 
 
     positions_reset = np.array(filtered_points)
