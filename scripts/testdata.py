@@ -6,7 +6,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.interpolate import CubicSpline
 from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import LSQUnivariateSpline
-from scipy.optimize import minimize_scalar, basinhopping
+from scipy.optimize import minimize_scalar, basinhopping, fminbound
 from scipy.spatial.transform import Rotation as R
 import glob 
 import math
@@ -157,7 +157,8 @@ def min_distance_to_spline(point):
     bounds = [(complete_time[0], complete_time[-1])]
     kwargs = {"method": "L-BFGS-B", "bounds": bounds}
     x_init =[0]
-    res = basinhopping(distance_function, x_init, minimizer_kwargs=kwargs, niter=500, stepsize =19)
+    time, fval, _, _ = fminbound(distance_function, 3, complete_time[-1], full_output = 1)
+    # res = basinhopping(distance_function, x_init, minimizer_kwargs=kwargs, niter=500, stepsize =19)
 
     # print("nit", res.nit)
     # print("res.x", res.x)
@@ -174,7 +175,7 @@ def min_distance_to_spline(point):
     # print("distance to 100", distance_function(complete_time[540]))
     # # res.x is the time along my spline that corresponds to the shortest distance on the spline to my point
     # print("spline at time", xspline(res.x), yspline(res.x), zspline(res.x))
-    return res.fun, res.x
+    return fval, time
 
 
 #********** Function to draw each segement of the track  **********
@@ -294,7 +295,6 @@ def csv_to_numpy_array_time(df):
 # To get all csv files in folder "processing"
 path = '../processing'
 csv_files = glob.glob(path + "/*.csv")
-
 
 
 for f in  csv_files:
@@ -548,11 +548,11 @@ for zone in crash_vel:
 
 
 # find arbitrary point 
-# pt = np.array([0.51592343, 0.93665992, 0.02264758])
-# print("shape of arb", pt.shape)
-# distance_to_arbitrary = min_distance_to_spline(pt)
-# #ax.plot(pt[0], pt[1], pt[2], 'go')
-# print("distance", distance_to_arbitrary)
+pt = np.array([-0.01925537, -0.30868521, -0.00086521])
+print("shape of arb", pt.shape)
+distance_to_arbitrary = min_distance_to_spline(pt)
+ax.plot(pt[0], pt[1], pt[2], 'go')
+print("distance", distance_to_arbitrary)
     
     
 
