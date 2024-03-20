@@ -333,6 +333,8 @@ for f in  csv_files:
     # andw the point after and if both distances are greater than 3 centimeters then we skip over this point so that we dont 
     # count that as the crash 
 
+    #Duy : outliers
+
     filtered_points = []
     filtered_time =[]
     print("length before", len(positions_reset))
@@ -371,38 +373,37 @@ for f in  csv_files:
             filtered_points.append(positions_reset[s])
             filtered_time.append(time_csv[s])
             ignore_filtered_points = True
-            # hello 
 
-
-
-
-
-
-
-
-
-        """
-        
-        #calculate distance to next point
-        next_outlier = True
-        prev_outlier = True
-        if s < len(positions_reset) - 1:
-            next_dist = np.linalg.norm(positions_reset[s] - positions_reset[s+1])
-            if next_dist < 0.03:
-                next_outlier = False
-        if s > 0:
-            prev_dist = np.linalg.norm(positions_reset[s] - positions_reset[s-1])
-            if prev_dist < 0.03:
-                prev_outlier = False
-        
-        if not next_outlier or not prev_outlier:
-            filtered_points.append(positions_reset[s])
-        """
-    
     # filtered points 
     positions_reset = np.array(filtered_points)
     updated_time = np.array(filtered_time)
-    print("len after", len(positions_reset))
+    print("len after", len(positions_reset))  
+
+
+
+
+
+
+
+
+
+        
+        
+        # #calculate distance to next point
+        # next_outlier = True
+        # prev_outlier = True
+        # if s < len(positions_reset) - 1:
+        #     next_dist = np.linalg.norm(positions_reset[s] - positions_reset[s+1])
+        #     if next_dist < 0.03:
+        #         next_outlier = False
+        # if s > 0:
+        #     prev_dist = np.linalg.norm(positions_reset[s] - positions_reset[s-1])
+        #     if prev_dist < 0.03:
+        #         prev_outlier = False
+        
+        # if not next_outlier or not prev_outlier:
+        #     filtered_points.append(positions_reset[s])
+      
 
     # find a straight segment in the path of the first line segment and make a line between the two points. then find the yaw of that 
     # and make the starting position of that yaw the same as the starting position of the complete run yaw 
