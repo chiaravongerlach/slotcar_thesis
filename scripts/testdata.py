@@ -145,9 +145,10 @@ def distancespline_function(t, x, y, z):
 #********** Returns minimum distance from point to complete spline   **********
 # call min_distance_to_spline with the point on my multiple runs csv file that i want to find the shortest distance to my spline 
 def min_distance_to_spline(point):
-    closest_point, distance_array = curve.projectPoint(point)
+    s, distance_array = curve.projectPoint(point)
     distance = np.linalg.norm(distance_array)
-    return distance
+    closest_point = curve.getValue(s)
+    return distance, closest_point
 
 
 
@@ -366,43 +367,71 @@ for f in  csv_files:
 
     ignore_filtered_points = False 
     for s in range(len(positions_reset)):
-        print("new point")
 
+
+        # print("new point")
         if s < 2:
             filtered_points.append(positions_reset[s])
             filtered_time.append(time_csv[s])
             continue
         
-        if ignore_filtered_points:
-            print("call to mindist")
-            outlier_tospline_distance = min_distance_to_spline(positions_reset[s])
-            if (outlier_tospline_distance < .15):
-                filtered_points.append(positions_reset[s])
-                filtered_time.append(time_csv[s])
-                ignore_filtered_points = False
-                continue
+    
 
-        # vector =positions_reset[s-1] - positions_reset[s-2]
         vector_between_points = filtered_points[-1] - filtered_points[-2]
         extra_pt = vector_between_points + positions_reset[s-1]
         distance_to_extra =np.linalg.norm(positions_reset[s]-extra_pt)
         distance_of_vector = np.linalg.norm(vector_between_points)
-        print("distance of extra, vector", distance_to_extra, distance_of_vector)
+        # print("distance of extra, vector", distance_to_extra, distance_of_vector)
         if (distance_to_extra < 0.5*distance_of_vector+0.01):
             filtered_points.append(positions_reset[s])
             filtered_time.append(time_csv[s])
-            continue
-        print("call2 to mindist")
-        outlier_tospline_distance = min_distance_to_spline(positions_reset[s])
-        if (outlier_tospline_distance < .15):
-            filtered_points.append(positions_reset[s])
-            filtered_time.append(time_csv[s])
-            ignore_filtered_points = True
+        else:
+            outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[s])
+            print("distance of point", positions_reset[s], outlier_tospline_distance)
+            if (outlier_tospline_distance < .002):
+                filtered_points.append(positions_reset[s])
+                filtered_time.append(time_csv[s])
+
+
+
+
+
+
+
+
+
+
+        # if ignore_filtered_points:
+        #     # print("call to mindist")
+        #     outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[s])
+        #     if (outlier_tospline_distance < .1):
+        #         # filtered_points.append(positions_reset[s])
+        #         filtered_time.append(time_csv[s])
+        #         ignore_filtered_points = False
+        #         continue
+
+        # # vector =positions_reset[s-1] - positions_reset[s-2]
+        # vector_between_points = filtered_points[-1] - filtered_points[-2]
+        # extra_pt = vector_between_points + positions_reset[s-1]
+        # distance_to_extra =np.linalg.norm(positions_reset[s]-extra_pt)
+        # distance_of_vector = np.linalg.norm(vector_between_points)
+        # # print("distance of extra, vector", distance_to_extra, distance_of_vector)
+        # if (distance_to_extra < 0.5*distance_of_vector+0.01):
+        #     filtered_points.append(positions_reset[s])
+        #     filtered_time.append(time_csv[s])
+        #     continue
+        # # print("call2 to mindist")
+        # outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[s])
+        # if (outlier_tospline_distance < .05):
+        #     filtered_points.append(positions_reset[s])
+        #     filtered_time.append(time_csv[s])
+        #     ignore_filtered_points = True
 
     # filtered points 
     positions_reset = np.array(filtered_points)
     updated_time = np.array(filtered_time)
     print("len after", len(positions_reset))  
+    print("point at index ", positions_reset[-5:])
 
 
 
@@ -503,7 +532,7 @@ for f in  csv_files:
 
         #lsq
         # print("point we call distance function on", positions_reset[i])
-        distance = min_distance_to_spline(positions_reset[i])
+        distance, closest_point = min_distance_to_spline(positions_reset[i])
         # print("distance of that point", distance)
       
         # print("**********************")
@@ -514,10 +543,17 @@ for f in  csv_files:
         # print("spline z at that time  =  %s" % zspline(time[i]))
         #check if distance is over threshold, 5 cm
         if distance > 0.06: # and distance_1 > 0.01 and distance_2 > 0.01 :
+            print("index", i)
             print("shape of pos", positions_reset[i])
-            # ax.plot(xspline(time_crash), yspline(time_crash), zspline(time_crash), 'ro', markersize=10)
+            ax.plot(closest_point[0], closest_point[1], closest_point[2], 'ro', markersize=15)
             ax.plot(positions_reset[i][0], positions_reset[i][1], positions_reset[i][2], 'go', markersize = 10)
             print("distance to spline", distance)
+            ax.plot(positions_reset[i-2][0], positions_reset[i-2][1], positions_reset[i-2][2], 'wo', markersize = 15)
+            ax.plot(positions_reset[i-1][0], positions_reset[i-1][1], positions_reset[i-1][2], 'ko', markersize = 15)
+            # ax.plot(positions_reset[i+1][0], positions_reset[i+1][1], positions_reset[i+1][2], 'mo', markersize = 15)
+
+            print("point before", positions_reset[i-1], positions_reset[i-2])
+
     
 
 
@@ -558,11 +594,12 @@ for f in  csv_files:
 
 
             for j, segment in enumerate(segments):
-                print("crashing point =  %s" % positions_reset[i])
-                print("point 10 before recorded crash", positions_reset[i-5])
-                print("distance to spline", min_distance_to_spline(positions_reset[i-10]))
                 
-                if is_in_segment(positions_reset[i-10], segment):
+                
+                if is_in_segment(positions_reset[i], segment):
+                    print("crashing point =  %s" % positions_reset[i])
+                    dis, close_point = min_distance_to_spline(positions_reset[i])
+                    print("distance to spline", dis, closest_point)
                     
                     crash_vel[j].append(velocity)
                     break
@@ -577,8 +614,8 @@ for zone in crash_vel:
 
 
 # find arbitrary point 
-pt = np.array([-0.41773691, -0.50486215, -0.00654526])
-distance_to_arbitrary = min_distance_to_spline(pt)
+pt = np.array([-0.14055614, -0.96742137,  0.07481665])
+distance_to_arbitrary, closest_point = min_distance_to_spline(pt)
 ax.plot(pt[0], pt[1], pt[2], 'ko')
 print("distance", distance_to_arbitrary)
     
