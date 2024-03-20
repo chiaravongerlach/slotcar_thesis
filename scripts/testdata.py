@@ -158,8 +158,8 @@ def min_distance_to_spline(point):
     kwargs = {"method": "L-BFGS-B", "bounds": bounds}
     x_init =[0]
     # res = differential_evolution(distance_function, bounds)
-    time, fval, _, _ = fminbound(distance_function, 4, 6, full_output = 1)
-    # res = basinhopping(distance_function, x_init, minimizer_kwargs=kwargs, niter=500, stepsize =19)
+    # time, fval, _, _ = fminbound(distance_function, 4, 6, full_output = 1)
+    res = basinhopping(distance_function, x_init, minimizer_kwargs=kwargs, niter=500, stepsize =19)
     # intervals = [(0, 3), (2, 5), (4, 6), (6, complete_time[-1])]
     # minimum_distance = np.inf
     # min_time = 0
@@ -187,7 +187,7 @@ def min_distance_to_spline(point):
     # print("spline at time", xspline(res.x), yspline(res.x), zspline(res.x))
     #return res.fun, res.x
     # return minimum_distance, min_time
-    return fval, time
+    return res.fun, res.x
 
 
 #********** Function to draw each segement of the track  **********
@@ -559,12 +559,12 @@ for zone in crash_vel:
 
 
 
-# find arbitrary point 
-pt = np.array([-0.41773691, -0.50486215, -0.00654526])
-print("shape of arb", pt.shape)
-distance_to_arbitrary, time = min_distance_to_spline(pt)
-ax.plot(pt[0], pt[1], pt[2], 'go')
-print("distance", distance_to_arbitrary, time)
+# # find arbitrary point 
+# pt = np.array([-0.41773691, -0.50486215, -0.00654526])
+# print("shape of arb", pt.shape)
+# distance_to_arbitrary, time = min_distance_to_spline(pt)
+# ax.plot(pt[0], pt[1], pt[2], 'go')
+# print("distance", distance_to_arbitrary, time)
     
     
 
