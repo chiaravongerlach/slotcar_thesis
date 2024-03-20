@@ -65,7 +65,7 @@ def listener(ser):
 
 if __name__ == '__main__':
     try:
-        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/ttyACM0')
+        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/tty.usbmodem101')
     except:
         print('Port open error')
     listener(ser)
