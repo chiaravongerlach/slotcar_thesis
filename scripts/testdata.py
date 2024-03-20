@@ -157,9 +157,18 @@ def min_distance_to_spline(point):
     bounds = [(complete_time[0], complete_time[-1])]
     kwargs = {"method": "L-BFGS-B", "bounds": bounds}
     x_init =[0]
-    res = differential_evolution(distance_function, bounds)
-    # time, fval, _, _ = fminbound(distance_function, 3, complete_time[-1], full_output = 1)
+    # res = differential_evolution(distance_function, bounds)
+    time, fval, _, _ = fminbound(distance_function, 4, 6, full_output = 1)
     # res = basinhopping(distance_function, x_init, minimizer_kwargs=kwargs, niter=500, stepsize =19)
+    # intervals = [(0, 3), (2, 5), (4, 6), (6, complete_time[-1])]
+    # minimum_distance = np.inf
+    # min_time = 0
+    # for interval in intervals:
+    #     time, distance, _, _ = fminbound(distance_function, interval[0], interval[1], full_output = 1)
+    #     if distance < minimum_distance:
+    #         minimum_distance = distance
+    #         min_time = time
+    
 
     # print("nit", res.nit)
     # print("res.x", res.x)
@@ -176,7 +185,9 @@ def min_distance_to_spline(point):
     # print("distance to 100", distance_function(complete_time[540]))
     # # res.x is the time along my spline that corresponds to the shortest distance on the spline to my point
     # print("spline at time", xspline(res.x), yspline(res.x), zspline(res.x))
-    return res.fun, res.x
+    #return res.fun, res.x
+    # return minimum_distance, min_time
+    return fval, time
 
 
 #********** Function to draw each segement of the track  **********
@@ -549,11 +560,11 @@ for zone in crash_vel:
 
 
 # find arbitrary point 
-pt = np.array([-0.02438517, -0.39194853, -0.00102838])
+pt = np.array([-0.41773691, -0.50486215, -0.00654526])
 print("shape of arb", pt.shape)
-distance_to_arbitrary = min_distance_to_spline(pt)
+distance_to_arbitrary, time = min_distance_to_spline(pt)
 ax.plot(pt[0], pt[1], pt[2], 'go')
-print("distance", distance_to_arbitrary)
+print("distance", distance_to_arbitrary, time)
     
     
 
