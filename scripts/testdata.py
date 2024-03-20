@@ -61,11 +61,14 @@ complete_array = complete_positions.to_numpy()
 # Numpy array that has x and y of first poiint 
 start_point = np.copy(complete_array[0, 0:2])
 
+time_complete = (file['datetime'] - file['datetime'][0]).dt.total_seconds().to_numpy()
+
 # # Make each point relative to the starting position 
 # # Set origin 
 complete_array -= complete_array[0]
+final_crashing_velocities = []
 # # Normalize rotation relative to a yaw of complete array 
-for point in complete_array:
+for i, point in enumerate(complete_array):
         # find the distance between the point you are at and the beginning
         distance_line = np.linalg.norm(point - complete_array[0])
         #once this distance is more than 0.2 (this is why it needs to use the filtered points so that it dosn't use an outlier)
@@ -76,7 +79,18 @@ for point in complete_array:
             y = vector_complete[1]
             # yaw = ata
             yaw = math.atan2(y, x)
+
+            distance_traveled = 0
+            for r in range(i-10,i-4):
+                distance_traveled += np.linalg.norm(complete_array[i] - complete_array[i+1])
+            total_time = time_complete[i-4] - time_complete[i-10]
+            velocity = distance_traveled/total_time
+            final_crashing_velocities.append(velocity)
+            distance_traveled=0
+            total_time =0
+
             break
+
 
 # # get rotation from csv
 # x = file['.transform.rotation.x'][0]
@@ -317,7 +331,7 @@ def csv_to_numpy_array_time(df):
 
 #********** Iterate Through Runs  **********
 # To get all csv files in folder "processing"
-path = '../processing'
+path = '../march 8 recordings'
 csv_files = glob.glob(path + "/*.csv")
 
 
@@ -668,7 +682,19 @@ print(crash_vel)
 
 for zone in crash_vel:
     print(len(zone))
+#want the min velcoty for turn 1,2 and the max velocity for the loop 
 
+
+
+for i, velocities in enumerate(crash_vel):
+    if len(velocities) == 0:
+        pass
+    elif i == 3:
+        final_crashing_velocities.append(max(velocities))
+    else:
+        final_crashing_velocities.append(min(velocities))
+
+print(final_crashing_velocities)
 
 
 # find arbitrary point 
