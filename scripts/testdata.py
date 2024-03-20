@@ -293,7 +293,6 @@ def is_in_segment(point, segment):
     if segment[1,0] <= point[0] and point[0] <= segment[0,0] and segment[1,1] <= point[1] and point[1] <= segment[0,1]:
         return True 
     else: 
-        print("hgbrs")
         return False
     
 
@@ -368,7 +367,7 @@ for f in  csv_files:
 
     filtered_points = []
     filtered_time =[]
-    print("length before", len(positions_reset))
+    
 
     ignore_filtered_points = False 
     sure_on_track = True
@@ -379,7 +378,7 @@ for f in  csv_files:
         if not sure_on_track and len(unsure_points) < 2:
             unsure_points.append(positions_reset[s])
             unsure_points_times.append(time_csv[s])
-            print("second unsure point")
+            
             continue
 
         # print("new point")
@@ -388,7 +387,7 @@ for f in  csv_files:
             filtered_time.append(time_csv[s])
             continue
         if ignore_filtered_points:
-            print("call to mindist")
+            
             outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[s])
             if (outlier_tospline_distance < .15):
                 filtered_points.append(positions_reset[s])
@@ -426,10 +425,10 @@ for f in  csv_files:
             if not sure_on_track:
                 unsure_points = []
                 unsure_points_times = []
-                print("not sure")
+                
 
             outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[s])
-            print("distance of point", positions_reset[s], outlier_tospline_distance)
+            
             if (outlier_tospline_distance < .05):
                 filtered_points.append(positions_reset[s])
                 filtered_time.append(time_csv[s])
@@ -442,9 +441,8 @@ for f in  csv_files:
 
 
     positions_reset = np.array(filtered_points)
-    updated_time = np.array(filtered_time)
-    print("len after", len(positions_reset))  
-    print("point at index ", positions_reset[-5:])
+    time_csv = np.array(filtered_time)
+    
 
 
 
@@ -493,7 +491,7 @@ for f in  csv_files:
     # normalize vector and vector_csv 
     vector_norm = vector_complete / np.linalg.norm(vector_complete)
     vector_norm_csv = vector_csv /np.linalg.norm(vector_csv)
-    print("vector norm", vector_norm, vector_norm_csv)
+    # print("vector norm", vector_norm, vector_norm_csv)
     #cross product of the two vectors to get the axis of rotation (that is perpendicular to both)
     axis_rot = np.cross(vector_norm, vector_norm_csv)
     # create rotation matrix 
@@ -508,8 +506,8 @@ for f in  csv_files:
     rotation_vector = -angle * axis_rot_norm
     rotation_axis = R.from_rotvec(rotation_vector)
     positions_reset = rotation_axis.apply(positions_reset)
-    print("rotation vcector", rotation_vector)
-    print("angle", angle_degrees)
+    # print("rotation vcector", rotation_vector)
+    # print("angle", angle_degrees)
 
     #plot the crash 
     ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
@@ -597,16 +595,16 @@ for f in  csv_files:
         # print("spline z at that time  =  %s" % zspline(time[i]))
         #check if distance is over threshold, 5 cm
         if distance > 0.06: # and distance_1 > 0.01 and distance_2 > 0.01 :
-            print("index", i)
-            print("shape of pos", positions_reset[i])
-            ax.plot(closest_point[0], closest_point[1], closest_point[2], 'ro', markersize=15)
-            # ax.plot(positions_reset[i][0], positions_reset[i][1], positions_reset[i][2], 'go', markersize = 10)
+            # print("index", i)
+            # print("shape of pos", positions_reset[i])
+            ax.plot(closest_point[0], closest_point[1], closest_point[2], 'ro', markersize=10)
+            ax.plot(positions_reset[i][0], positions_reset[i][1], positions_reset[i][2], 'go', markersize = 10)
             print("distance to spline", distance)
-            ax.plot(positions_reset[i-2][0], positions_reset[i-2][1], positions_reset[i-2][2], 'wo', markersize = 15)
-            ax.plot(positions_reset[i-1][0], positions_reset[i-1][1], positions_reset[i-1][2], 'ko', markersize = 15)
+            # ax.plot(positions_reset[i-2][0], positions_reset[i-2][1], positions_reset[i-2][2], 'wo', markersize = 15)
+            # ax.plot(positions_reset[i-1][0], positions_reset[i-1][1], positions_reset[i-1][2], 'ko', markersize = 15)
             # ax.plot(positions_reset[i+1][0], positions_reset[i+1][1], positions_reset[i+1][2], 'mo', markersize = 15)
 
-            print("point before", positions_reset[i-1], positions_reset[i-2])
+            print("point before crash", positions_reset[i-1], positions_reset[i-2])
 
     
 
@@ -619,13 +617,18 @@ for f in  csv_files:
             if (i < 4): 
                 continue
             #calculate the velocity 
-            time_total = 0
+
+
+
+
+
+            
             distance_traveled = 0
-            pos = 0
-            for r in range(i-11,i-9):
-                time_total += time_csv[r]
+            for r in range(i-10,i-4):
                 distance_traveled += np.linalg.norm(positions_reset[r] - positions_reset[r+1])
-                print("test")
+            total_time = time_csv[i-4] - time_csv[i-10]
+            velocity = distance_traveled/total_time
+                
                 
             #     temp = np.linalg.norm(positions_reset[r+1] - positions_reset[r]) / time[r]
             #     # print("distance", np.linalg.norm(positions_reset[r+1] - positions_reset[r]))
@@ -634,8 +637,8 @@ for f in  csv_files:
             #     pos += np.linalg.norm(positions_reset[r+1] - positions_reset[r]) / time[r]
             # velocity = pos /5
             #for one velocity 
-            time_diff = time_csv[i-11] - time_csv[i-8]
-            velocity = distance_traveled/ time_diff
+            # time_diff = time_csv[i-11] - time_csv[i-8]
+            # velocity = distance_traveled/ time_diff
          
 
 
@@ -652,6 +655,7 @@ for f in  csv_files:
                 
                 if is_in_segment(positions_reset[i], segment):
                     print("crashing point =  %s" % positions_reset[i])
+                    
                     dis, close_point = min_distance_to_spline(positions_reset[i])
                     print("distance to spline", dis, closest_point)
                     
