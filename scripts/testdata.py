@@ -332,7 +332,7 @@ for f in  csv_files:
     #set relative to origin start point , now every run starts at 0,0,0
     positions_reset = positions - positions[0]
     
-
+    # ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
 
     #****** old way of doing relative
     # print("shape before", positions_reset.shape)
@@ -371,8 +371,16 @@ for f in  csv_files:
     print("length before", len(positions_reset))
 
     ignore_filtered_points = False 
+    sure_on_track = True
+    unsure_points = []
+    unsure_points_times = []
     for s in range(len(positions_reset)):
 
+        if not sure_on_track and len(unsure_points) < 2:
+            unsure_points.append(positions_reset[s])
+            unsure_points_times.append(time_csv[s])
+            print("second unsure point")
+            continue
 
         # print("new point")
         if s < 2:
@@ -389,22 +397,48 @@ for f in  csv_files:
                 continue
         
     
-
-        vector_between_points = filtered_points[-1] - filtered_points[-2]
-        extra_pt = vector_between_points + filtered_points[-1]
-        distance_to_extra =np.linalg.norm(positions_reset[s]-extra_pt)
-        distance_of_vector = np.linalg.norm(vector_between_points)
-        # print("distance of extra, vector", distance_to_extra, distance_of_vector)
-        if (distance_to_extra < 0.5*distance_of_vector+0.01):
-            filtered_points.append(positions_reset[s])
-            filtered_time.append(time_csv[s])
+        if sure_on_track:
+            vector_between_points = filtered_points[-1] - filtered_points[-2]
+            extra_pt = vector_between_points + filtered_points[-1]
+            distance_to_extra =np.linalg.norm(positions_reset[s]-extra_pt)
+            distance_of_vector = np.linalg.norm(vector_between_points)
+            # print("distance of extra, vector", distance_to_extra, distance_of_vector)
         else:
+            vector_between_points = unsure_points[-1] - unsure_points[-2]
+            extra_pt = vector_between_points + unsure_points[-1]
+            distance_to_extra =np.linalg.norm(positions_reset[s]-extra_pt)
+            distance_of_vector = np.linalg.norm(vector_between_points)
+
+        if (distance_to_extra < 0.5*distance_of_vector+0.01):
+            if sure_on_track:
+                filtered_points.append(positions_reset[s])
+                filtered_time.append(time_csv[s])
+            else:
+                unsure_points.append(positions_reset[s])
+                unsure_points_times.append(time_csv[s])
+                if len(unsure_points) == 4:
+                    sure_on_track = True
+                    filtered_points.extend(unsure_points)
+                    filtered_time.extend(unsure_points_times)
+                    unsure_points = []
+                    unsure_points_times = []
+        else:
+            if not sure_on_track:
+                unsure_points = []
+                unsure_points_times = []
+                print("not sure")
+
             outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[s])
             print("distance of point", positions_reset[s], outlier_tospline_distance)
             if (outlier_tospline_distance < .05):
                 filtered_points.append(positions_reset[s])
                 filtered_time.append(time_csv[s])
                 ignore_filtered_points = True
+            else:
+                # ax.plot(positions_reset[s][0], positions_reset[s][1], positions_reset[s][2], 'go', markersize = 15)
+                sure_on_track = False
+                unsure_points.append(positions_reset[s])
+                unsure_points_times.append(time_csv[s])
 
 
     positions_reset = np.array(filtered_points)
@@ -566,7 +600,7 @@ for f in  csv_files:
             print("index", i)
             print("shape of pos", positions_reset[i])
             ax.plot(closest_point[0], closest_point[1], closest_point[2], 'ro', markersize=15)
-            ax.plot(positions_reset[i][0], positions_reset[i][1], positions_reset[i][2], 'go', markersize = 10)
+            # ax.plot(positions_reset[i][0], positions_reset[i][1], positions_reset[i][2], 'go', markersize = 10)
             print("distance to spline", distance)
             ax.plot(positions_reset[i-2][0], positions_reset[i-2][1], positions_reset[i-2][2], 'wo', markersize = 15)
             ax.plot(positions_reset[i-1][0], positions_reset[i-1][1], positions_reset[i-1][2], 'ko', markersize = 15)
@@ -634,10 +668,10 @@ for zone in crash_vel:
 
 
 # find arbitrary point 
-pt = np.array([-0.14055614, -0.96742137,  0.07481665])
-distance_to_arbitrary, closest_point = min_distance_to_spline(pt)
-ax.plot(pt[0], pt[1], pt[2], 'ko')
-print("distance", distance_to_arbitrary)
+# pt = np.array([-0.14055614, -0.96742137,  0.07481665])
+# distance_to_arbitrary, closest_point = min_distance_to_spline(pt)
+# ax.plot(pt[0], pt[1], pt[2], 'ko')
+# print("distance", distance_to_arbitrary)
     
     
 
