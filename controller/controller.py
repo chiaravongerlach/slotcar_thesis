@@ -80,6 +80,19 @@ def callback(data, ser):
         total_time = (prev_points[4][1] - prev_points[0][1]).total_seconds()
         velocity = distance_traveled/total_time
     
+    # check whether velocity is safe for segment 
+    safe_ranges = [2.1043911825424666, 1.8191871053204132, 2.4426514688135, 2.54147152599213, 2.1777409348338157]
+    #CONTROLLER 
+    max_velocity_for_segment = safe_ranges[current_segment]
+    kp = 
+    # kp(vmax - vcurr)
+    control_input = kp * (max_velocity_for_segment - velocity)
+    
+
+
+
+    
+    
 
 
     # print("x:", data.transform.translation.x, "y:", data.transform.translation.y, "z:", data.transform.translation.z)
