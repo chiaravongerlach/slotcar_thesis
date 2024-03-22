@@ -25,6 +25,10 @@ def callback(data, ser):
     rw = x = data.transform.rotation.w
     '''
     # print("x:", data.transform.translation.x, "y:", data.transform.translation.y, "z:", data.transform.translation.z)
+    # save first point
+    # subtract first point from eahc point adn apply rotation from pickle object and then with the copy pasted isinsegment then
+    # i am gonna check what segment its in and then compare it to safe range and then clip . 
+    # for velocity keep a buffer of the last ten time steps and keep list of last ten 
 
     # calculate the velocity based on the received vicon data
     velocity = 0.0

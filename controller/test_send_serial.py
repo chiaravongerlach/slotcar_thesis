@@ -6,7 +6,7 @@ import random
 import ast
 
 try:
-    ser=serial.Serial(baudrate='9600', timeout=.5, port='tty.usbmodem101')
+    ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/tty.usbmodem1101')
 except:
     print('Port open error')
 
