@@ -1,4 +1,5 @@
 import serial
+import pickle
 from struct import *
 import sys
 import time
@@ -7,8 +8,23 @@ import ast
 import rospy
 from geometry_msgs.msg import TransformStamped
 import socket
+import numpy as np
+from datetime import datetime
+
+#********** Returns True if point is in segment  **********
+def is_in_segment(point, segment):
+    if segment[1,0] <= point[0] and point[0] <= segment[0,0] and segment[1,1] <= point[1] and point[1] <= segment[0,1]:
+        return True 
+    else: 
+        return False
+    
+
+#********** Create list to store previous points in  **********
+prev_points = []
 
 angle = 0
+
+
 
 def callback(data, ser):
     global angle
@@ -23,7 +39,49 @@ def callback(data, ser):
     ry = x = data.transform.rotation.y
     rz = x = data.transform.rotation.z
     rw = x = data.transform.rotation.w
+
     '''
+
+    #import rotation pickle and first point 
+    with open('rotation_pickle.pkl', 'rb') as file:
+        rotation, first_point, segments = pickle.load(file)
+
+    # for each point I want to set it relative to my complete run
+    point = np.array([data.transform.translation.x, data.transform.translation.y, data.transform.translation.z])
+    point -= first_point
+    point = rotation.apply(point)
+
+    #check which point segment is in 
+    current_segment = -1
+    for i, segment in enumerate(segments):   
+        if is_in_segment(point, segment):
+            current_segment = i
+            break
+    if current_segment == -1:
+        print("No segment found for point")
+    
+    # get time from point
+    format = '%Y/%m/%d/%H:%M:%S.%f'
+    time = datetime.strptime(data.time, format)
+
+
+    # FIFO list buffer
+    prev_points.append((point, time))
+    # only keep track of the last 4 points plus the current one
+    if len(prev_points) > 5:
+        prev_points.pop(0)
+    #default value for velocioty
+    velocity = 0
+    # compute velocity for every point after the first 4 
+    if len(prev_points) > 4:
+        distance_traveled = 0
+        for i in range(len(prev_points)-1):
+            distance_traveled += np.linalg.norm(prev_points[i][0] - prev_points[i+1][0])
+        total_time = (prev_points[4][1] - prev_points[0][1]).total_seconds()
+        velocity = distance_traveled/total_time
+    
+
+
     # print("x:", data.transform.translation.x, "y:", data.transform.translation.y, "z:", data.transform.translation.z)
     # save first point
     # subtract first point from eahc point adn apply rotation from pickle object and then with the copy pasted isinsegment then
