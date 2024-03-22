@@ -89,6 +89,21 @@ def callback(data, ser):
     # kp(vmax - vcurr)
     control_input = kp * (max_velocity_for_segment - velocity)
 
+    # now i have slope and intercept 
+    # copy and paste the slope and itnerfcept from experiment 
+    slope = 0
+    intercept = 0
+    
+    #compute the control input 
+    set_angle = (max_velocity_for_segment - intercept) / slope 
+    if velocity >= max_velocity_for_segment:
+        angle = set_angle
+    else:
+        pass
+        #Duy 
+        #pass human input 
+
+
 
 
 
