@@ -84,10 +84,11 @@ def callback(data, ser):
     safe_ranges = [2.1043911825424666, 1.8191871053204132, 2.4426514688135, 2.54147152599213, 2.1777409348338157]
     #CONTROLLER 
     max_velocity_for_segment = safe_ranges[current_segment]
-    kp = 
+    #tune constant 
+    kp = 1
     # kp(vmax - vcurr)
     control_input = kp * (max_velocity_for_segment - velocity)
-    
+
 
 
 
