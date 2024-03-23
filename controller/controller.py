@@ -55,6 +55,8 @@ def callback(data, ser):
             except:
                 print('Error in corvert, readed: ', dats)
         time.sleep(0.1)
+    except serial.SerialTimeoutException:
+        ser.flush()
     except:
         print(str(sys.exc_info())) #print error
     
@@ -65,7 +67,7 @@ def listener(ser):
 
 if __name__ == '__main__':
     try:
-        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/ttyACM0')
+        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/ttyACM0', write_timeout=0.2)
     except:
         print('Port open error')
     listener(ser)

@@ -18,10 +18,10 @@ void loop() {
   checkForNewData();
   if (newData == true) {
     newData = false;
-  }
-  response(myArray[0], myArray[1], myArray[2]); //here write the send data
-  if(myArray[0] == 255 && myArray[2] == 255){
-    angle = myArray[1];
+    response(myArray[0], myArray[1], myArray[2]); //here write the send data
+    if(myArray[0] == 255 && myArray[2] == 255){
+      angle = myArray[1];
+    }
   }
   controller.write(angle);
 }
