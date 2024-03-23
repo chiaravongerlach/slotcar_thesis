@@ -75,10 +75,6 @@ for i, point in enumerate(complete_array):
         # then we make our vector and adjust the yaw 
         if distance_line > 0.5:
             vector_complete = point - complete_array[0]
-            x = vector_complete[0]
-            y = vector_complete[1]
-            # yaw = ata
-            yaw = math.atan2(y, x)
 
             distance_traveled = 0
             for r in range(i-10,i-4):
@@ -258,6 +254,7 @@ turn_1 -= start_point
 line_2 -= start_point
 loop -= start_point
 turn_2 -= start_point
+print("start point", start_point)
 
 # Use this to iterature through the segments later on when you wanna check what point crashed 
 segments = [line_1, turn_1, line_2, loop, turn_2]
@@ -493,12 +490,6 @@ for f in  csv_files:
         # then we make our vector and adjust the yaw 
         if distance_line > 0.5:
             vector_csv = point - positions_reset[0]
-            x = vector_csv[0]
-            y = vector_csv[1]
-            # yaw = ata
-            # yaw_new = math.atan2(y, x)
-            # make rotation matrix 
-            # rotation = R.from_euler('z', yaw - yaw_new)
             break
     # rotate each point 
     # positions_reset = rotation.apply(positions_reset)
@@ -524,7 +515,7 @@ for f in  csv_files:
     # print("angle", angle_degrees)
 
     #plot the crash 
-    # ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
+    ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
 
 
     
@@ -682,7 +673,7 @@ for f in  csv_files:
             x_after = data_after_crash[:, 0]
             y_after = data_after_crash[:, 1]
             z_after = data_after_crash[:, 2]  # Assuming z is used for something else like sizing or another dimension
-            ax.scatter(x_after, y_after, z_after, color='yellow')
+            # ax.scatter(x_after, y_after, z_after, color='yellow')
 
             data_before_crash = positions_reset[:index_of_crash + 1, :]
             x = data_before_crash[:, 0]
@@ -690,7 +681,7 @@ for f in  csv_files:
             z = data_before_crash[:, 2]  # Assuming z is used for something else like sizing or another dimension
 
             # Plotting the scatter plot
-            ax.scatter(x, y, z, color='blue')
+            # ax.scatter(x, y, z, color='blue')
             break
 #print crash vel 
 print(crash_vel)
