@@ -135,7 +135,7 @@ def callback(data, ser):
     #     #pass human input 
     
     if current_segment == 0:
-        angle = 10
+        angle = 50
     else:
         angle = 0
     print(current_segment)
@@ -197,7 +197,7 @@ def listener(ser):
 
 if __name__ == '__main__':
     try:
-        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/ttyACM0', write_timeout=0.2)
+        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/tty.usbmodem101', write_timeout=0.2)
     except:
         print('Port open error')
     listener(ser)
