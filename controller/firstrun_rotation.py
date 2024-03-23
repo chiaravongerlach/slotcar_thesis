@@ -15,6 +15,28 @@ from pyspline import Curve
 
 
 
+#********** Function to draw each segement of the track  **********
+def draw_rectangle(ax, corners, z=0):
+    """ Take in the matplotlib 3D axis: ax,
+    two corners [[x, y],[x, y]]
+    draw it on the plane z=0
+    """
+    # Check corners is a np array
+    corners = np.array(corners)
+    # Calculate the other two corners of the rectangle
+    # Get first corner and label it corner1
+    corner1 = corners[0]
+    corner2 = corners[1]
+    # Create the two other corners of the rectangle
+    corner3 = np.array([corner1[0], corner2[1]])
+    corner4 = np.array([corner2[0], corner1[1]])
+
+    # Combine corner 1,2,3,4 and plot the rectangle_corners
+    rectangle_corners = np.array([corner1, corner3, corner2, corner4, corner1])
+    ax.plot(rectangle_corners[:, 0], rectangle_corners[:, 1], zs=z, zdir='z', marker='o')
+    ax.plot(0.43295037, 0.82407303, 0.03455076, 'ro', markersize=10)
+    ax.plot(-0.03831215, -0.23507716,  0.00027887, 'go', markersize=10)
+
 # when you first place the table under the vicon run this script to get the rotation matrix
 # 
 
@@ -23,8 +45,9 @@ file = pd.read_csv('../first_run/complete3.csv')
 # Create numpy array of each position in complete csv file 
 complete_positions = file[['.transform.translation.x', '.transform.translation.y', '.transform.translation.z']]
 complete_array = complete_positions.to_numpy()
-complete_array -= complete_array[0]
 start_point = np.copy(complete_array[0, 0:2])
+complete_array -= complete_array[0]
+
 
 for point in complete_array:
     # find the distance between the point you are at and the beginning
@@ -33,6 +56,7 @@ for point in complete_array:
     # then we make our vector and adjust the yaw 
     if distance_line > 0.5:
         vector_complete = point - complete_array[0]
+        break
 
 ## for other run 
 df = pd.read_csv('../first_run/firstrun.csv')
@@ -62,12 +86,23 @@ axis_rot = np.cross(vector_norm, vector_norm_csv)
 axis_rot_norm = axis_rot / np.linalg.norm(axis_rot)
 # angle to rotate by 
 angle = np.arccos(np.dot(vector_norm, vector_norm_csv))
+print(vector_norm, vector_norm_csv)
+
 angle_degrees = angle* 180 / math.pi
+
+print(angle_degrees)
 #rotation vector
 #length of vector is the angle of rotation 
 #direction of vector is the axis that we rotate by 
 rotation_vector = -angle * axis_rot_norm
 rotation_axis = R.from_rotvec(rotation_vector)
+#change 
+positions_reset = rotation_axis.apply(positions_reset)
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
 
 # Segements 
 #********** Create Segments  **********
@@ -99,4 +134,32 @@ segments = [line_1, turn_1, line_2, loop, turn_2]
 
 # Pickle the object and save it to a file
 with open('rotation_pickle.pkl', 'wb') as file:
-    pickle.dump((rotation_axis, positions_reset[0], segments), file)
+    pickle.dump((rotation_axis, positions[0], segments), file)
+
+
+
+ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2])
+# Scatter plot using 'x', 'y', 'z' columns, 'c' to color code by velocity 
+# sc = ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2], c=file['v_magnitude'], cmap='viridis')
+# ax.scatter()
+# Create a colorbar to show the time values
+# cbar = plt.colorbar(sc)
+# cbar.set_label('Velocity')
+# Set labels for axes
+ax.set_xlabel('X position')
+ax.set_ylabel('Y position')
+ax.set_zlabel('Z position')
+# Set title
+ax.set_title('Robot Position Over Time')
+# Draw the rectangle on the xy plane
+draw_rectangle(ax, line_1, z=0)
+# Draw the rectangle on the xy plane
+draw_rectangle(ax, line_2, z=0)
+# Draw the rectangle on the xy plane
+draw_rectangle(ax, turn_1, z=0)
+# Draw the rectangle on the xy plane
+draw_rectangle(ax, turn_2, z=0)
+# Draw the rectangle on the xy plane
+draw_rectangle(ax, loop, z=0)
+
+plt.show()

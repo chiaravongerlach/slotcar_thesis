@@ -11,6 +11,33 @@ import socket
 import numpy as np
 from datetime import datetime
 
+#********** Create Segments  **********
+"""
+Break track into four segments that we can find safe velocity ranges for
+Convention: first point is top right and then bottom left 
+"""
+# First Line 
+line_1 = np.array([[0.5594, 1.1028], [0.4208, 0.4009]]) 
+# Turn 1
+turn_1 = np.array([[line_1[0, 0], line_1[1, 1]], [0.0234, 0.0405]])
+# Line 2
+line_2 = np.array([[0.1993, 0.6942],[turn_1[1,0], line_1[1, 1]]])
+# Loop
+loop = np.array([[line_2[0,0],line_1[0,1]],[-0.0645, line_2[0,1]]])
+# Second Turn
+turn_2 = np.array([[line_1[0,0], 1.4731], [loop[1,0], line_1[0,1]]])
+
+# Set relative to starting point
+start_point = np.array([0.52252043, 1.04219351])
+line_1 -= start_point
+turn_1 -= start_point
+line_2 -= start_point
+loop -= start_point
+turn_2 -= start_point
+
+# Use this to iterature through the segments later on when you wanna check what point crashed 
+segments = [line_1, turn_1, line_2, loop, turn_2]
+
 #********** Returns True if point is in segment  **********
 def is_in_segment(point, segment):
     if segment[1,0] <= point[0] and point[0] <= segment[0,0] and segment[1,1] <= point[1] and point[1] <= segment[0,1]:
@@ -22,7 +49,7 @@ def is_in_segment(point, segment):
 #********** Create list to store previous points in  **********
 prev_points = []
 
-angle = 0
+
 
 
 
@@ -48,8 +75,11 @@ def callback(data, ser):
 
     # for each point I want to set it relative to my complete run
     point = np.array([data.transform.translation.x, data.transform.translation.y, data.transform.translation.z])
+    
     point -= first_point
     point = rotation.apply(point)
+    
+
 
     #check which point segment is in 
     current_segment = -1
@@ -59,49 +89,58 @@ def callback(data, ser):
             break
     if current_segment == -1:
         print("No segment found for point")
+        
     
-    # get time from point
-    format = '%Y/%m/%d/%H:%M:%S.%f'
-    time = datetime.strptime(data.time, format)
+    # # get time from point
+    # format = '%Y/%m/%d/%H:%M:%S.%f'
+    # time = datetime.strptime(data.time, format)
 
 
-    # FIFO list buffer
-    prev_points.append((point, time))
-    # only keep track of the last 4 points plus the current one
-    if len(prev_points) > 5:
-        prev_points.pop(0)
-    #default value for velocioty
-    velocity = 0
-    # compute velocity for every point after the first 4 
-    if len(prev_points) > 4:
-        distance_traveled = 0
-        for i in range(len(prev_points)-1):
-            distance_traveled += np.linalg.norm(prev_points[i][0] - prev_points[i+1][0])
-        total_time = (prev_points[4][1] - prev_points[0][1]).total_seconds()
-        velocity = distance_traveled/total_time
+    # # FIFO list buffer
+    # prev_points.append((point, time))
+    # # only keep track of the last 4 points plus the current one
+    # if len(prev_points) > 5:
+    #     prev_points.pop(0)
+    # #default value for velocioty
+    # velocity = 0
+    # # compute velocity for every point after the first 4 
+    # if len(prev_points) > 4:
+    #     distance_traveled = 0
+    #     for i in range(len(prev_points)-1):
+    #         distance_traveled += np.linalg.norm(prev_points[i][0] - prev_points[i+1][0])
+    #     total_time = (prev_points[4][1] - prev_points[0][1]).total_seconds()
+    #     velocity = distance_traveled/total_time
     
-    # check whether velocity is safe for segment 
-    safe_ranges = [2.1043911825424666, 1.8191871053204132, 2.4426514688135, 2.54147152599213, 2.1777409348338157]
-    #CONTROLLER 
-    max_velocity_for_segment = safe_ranges[current_segment]
-    #tune constant 
-    kp = 1
-    # kp(vmax - vcurr)
-    control_input = kp * (max_velocity_for_segment - velocity)
+    # # check whether velocity is safe for segment 
+    # safe_ranges = [2.1043911825424666, 1.8191871053204132, 2.4426514688135, 2.54147152599213, 2.1777409348338157]
+    # #CONTROLLER 
+    # max_velocity_for_segment = safe_ranges[current_segment]
+    # #tune constant 
+    # kp = 1
+    # # kp(vmax - vcurr)
+    # control_input = kp * (max_velocity_for_segment - velocity)
 
-    # now i have slope and intercept 
-    # copy and paste the slope and itnerfcept from experiment 
-    slope = 0
-    intercept = 0
+    # # now i have slope and intercept 
+    # # copy and paste the slope and itnerfcept from experiment 
+    # slope = 0
+    # intercept = 0
     
-    #compute the control input 
-    set_angle = (max_velocity_for_segment - intercept) / slope 
-    if velocity >= max_velocity_for_segment:
-        angle = set_angle
+    # #compute the control input 
+    # set_angle = (max_velocity_for_segment - intercept) / slope 
+    # if velocity >= max_velocity_for_segment:
+    #     angle = set_angle
+    # else:
+    #     pass
+    #     #Duy 
+    #     #pass human input 
+    
+    if current_segment == 0:
+        angle = 10
     else:
-        pass
-        #Duy 
-        #pass human input 
+        angle = 0
+    print(current_segment)
+
+
 
 
 
@@ -118,10 +157,10 @@ def callback(data, ser):
     # for velocity keep a buffer of the last ten time steps and keep list of last ten 
 
     # calculate the velocity based on the received vicon data
-    velocity = 0.0
+   
 
     # process the targeted velocity and send the angle to the Arduino via serial
-    angle = 0
+    
 
     try:
         # the first and last number are used to check if the returned data is correct, 127

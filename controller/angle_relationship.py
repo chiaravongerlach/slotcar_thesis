@@ -22,6 +22,7 @@ for f in  csv_files:
     df = pd.read_csv(f)
     #get angle from file name 
     #last part of path should be number of angle.csv
+    # angle 2 would be 002.csv
     angle = int(f[-7:-4])
 
     transformations = df[['.transform.translation.x', '.transform.translation.y', '.transform.translation.z']]
@@ -51,9 +52,13 @@ for f in  csv_files:
     angles.append(angle)
     velocities.append(velocity)
 
+#for each file it appends the angle and its corresponding velocity 
+    
 # plot relationships 
 
 slope, intercept, r_value, p_value, std_err = stats.linregress(angles, velocities)
+print("slope: ", slope)
+print("intercept: ", intercept)
 line = [slope * x + intercept for x in angles]
 # Create the plot
 plt.figure(figsize=(10, 6))

@@ -33,6 +33,7 @@ while True:
                 # check to see if data returned is correct
                 if data_list[0] == 255 and data_list[-1] == 255:
                     print("Correct:", data_list)
+                    #data = ANGLE
                     if increasing:
                         data = data + 1
                         if data > 180:
