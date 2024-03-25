@@ -19,6 +19,7 @@ velocities = []
 
 
 for f in  csv_files:
+    print(f)
     df = pd.read_csv(f)
     #get angle from file name 
     #last part of path should be number of angle.csv
@@ -43,7 +44,7 @@ for f in  csv_files:
         #once this distance is more than 0.2 (this is why it needs to use the filtered points so that it dosn't use an outlier)
         # then we make our vector and adjust the yaw 
         distance_traveled = 0
-        if distance_line > 0.3:
+        if distance_line > 0.5:
             for r in range(i-5,i):
                 distance_traveled += np.linalg.norm(positions_reset[r] - positions_reset[r+1])
             total_time = time_csv[i] - time_csv[i-5]

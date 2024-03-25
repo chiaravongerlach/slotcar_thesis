@@ -34,8 +34,7 @@ def draw_rectangle(ax, corners, z=0):
     # Combine corner 1,2,3,4 and plot the rectangle_corners
     rectangle_corners = np.array([corner1, corner3, corner2, corner4, corner1])
     ax.plot(rectangle_corners[:, 0], rectangle_corners[:, 1], zs=z, zdir='z', marker='o')
-    ax.plot(0.43295037, 0.82407303, 0.03455076, 'ro', markersize=10)
-    ax.plot(-0.03831215, -0.23507716,  0.00027887, 'go', markersize=10)
+    ax.plot(-0.00634452,  0.00076581,  0.00148233, 'ro', markersize=10)
 
 # when you first place the table under the vicon run this script to get the rotation matrix
 # 

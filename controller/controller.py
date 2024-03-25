@@ -39,8 +39,8 @@ turn_2 -= start_point
 segments = [line_1, turn_1, line_2, loop, turn_2]
 
 #********** Returns True if point is in segment  **********
-def is_in_segment(point, segment):
-    if segment[1,0] <= point[0] and point[0] <= segment[0,0] and segment[1,1] <= point[1] and point[1] <= segment[0,1]:
+def is_in_segment(point_t, segment):
+    if segment[1,0] <= point_t[0] and point_t[0] <= segment[0,0] and segment[1,1] <= point_t[1] and point_t[1] <= segment[0,1]:
         return True 
     else: 
         return False
@@ -48,15 +48,18 @@ def is_in_segment(point, segment):
 
 #********** Create list to store previous points in  **********
 prev_points = []
+#import rotation pickle and first point 
+with open('rotation_pickle.pkl', 'rb') as file:
+    rotation, first_point, segments = pickle.load(file)
 
 
 
 
 
 def callback(data, ser):
-    global angle
+
     # get the car pose
-    # rospy.loginfo("{:.3f}, {:.3f}, {:.3f}".format(data.transform.translation.x, data.transform.translation.y, data.transform.translation.z))
+    rospy.loginfo("{:.3f}, {:.3f}, {:.3f}".format(data.transform.translation.x, data.transform.translation.y, data.transform.translation.z))
     '''
     Get car pose with the following syntax
     x = data.transform.translation.x
@@ -69,15 +72,16 @@ def callback(data, ser):
 
     '''
 
-    #import rotation pickle and first point 
-    with open('rotation_pickle.pkl', 'rb') as file:
-        rotation, first_point, segments = pickle.load(file)
-
+    
+    print("data x", data.transform.translation.x)
     # for each point I want to set it relative to my complete run
     point = np.array([data.transform.translation.x, data.transform.translation.y, data.transform.translation.z])
     
+    print("point before ", point)
     point -= first_point
+
     point = rotation.apply(point)
+    print("point with rotation", point)
     
 
 
@@ -134,11 +138,14 @@ def callback(data, ser):
     #     #Duy 
     #     #pass human input 
     
-    if current_segment == 0:
-        angle = 50
-    else:
-        angle = 0
+    # if current_segment == 0:
+    #     angle = 50
+    # else:
+    #     angle = 0
+    # print(current_segment)
     print(current_segment)
+    angle = 180
+    
 
 
 
@@ -167,24 +174,24 @@ def callback(data, ser):
         # the 8 other values in between are dynamic data
         ser.write(pack('3B', 255, angle, 255))
         time.sleep(.01)
-        dat=ser.readline()
+        # dat=ser.readline()
         
-        if dat!=b''and dat!=b'\r\n':
-            try:
-                dats=str(dat)
-                dat1=dats.replace("b","")
-                dat2=dat1.replace("'",'')
-                dat3=dat2[:-4]
-                data_list=ast.literal_eval(dat3)
-                # check to see if data returned is correct
-                if data_list[0] == 255 and data_list[-1] == 255:
-                    print("Correct:", data_list)
-                else:
-                    print("Wrong data:", data_list)
-                # print(dat3)
-            except:
-                print('Error in corvert, readed: ', dats)
-        time.sleep(0.1)
+        # if dat!=b''and dat!=b'\r\n':
+        #     try:
+        #         dats=str(dat)
+        #         dat1=dats.replace("b","")
+        #         dat2=dat1.replace("'",'')
+        #         dat3=dat2[:-4]
+        #         data_list=ast.literal_eval(dat3)
+        #         # check to see if data returned is correct
+        #         if data_list[0] == 255 and data_list[-1] == 255:
+        #             print("Correct:", data_list)
+        #         else:
+        #             print("Wrong data:", data_list)
+        #         # print(dat3)
+        #     except:
+        #         print('Error in corvert, readed: ', dats)
+        # time.sleep(0.1)
     except serial.SerialTimeoutException:
         ser.flush()
     except:
@@ -192,12 +199,12 @@ def callback(data, ser):
     
 def listener(ser):
     rospy.init_node('vicon_listener', anonymous=True)
-    rospy.Subscriber("/vicon/slot_car/slot_car", TransformStamped, callback, (ser))
+    rospy.Subscriber("/vicon/slot_car/slot_car", TransformStamped, callback, (ser), queue_size =1)
     rospy.spin()
 
 if __name__ == '__main__':
     try:
-        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/tty.usbmodem101', write_timeout=0.2)
+        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/tty.usbmodem1101', write_timeout=0.2)
     except:
         print('Port open error')
     listener(ser)
