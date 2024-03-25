@@ -95,42 +95,48 @@ def callback(data, ser):
         print("No segment found for point")
         
     
-    # # get time from point
+    # get time from point
     # format = '%Y/%m/%d/%H:%M:%S.%f'
     # time = datetime.strptime(data.time, format)
 
-
+    time_ros = data.header.stamp
     # # FIFO list buffer
-    # prev_points.append((point, time))
-    # # only keep track of the last 4 points plus the current one
-    # if len(prev_points) > 5:
-    #     prev_points.pop(0)
-    # #default value for velocioty
-    # velocity = 0
-    # # compute velocity for every point after the first 4 
-    # if len(prev_points) > 4:
-    #     distance_traveled = 0
-    #     for i in range(len(prev_points)-1):
-    #         distance_traveled += np.linalg.norm(prev_points[i][0] - prev_points[i+1][0])
-    #     total_time = (prev_points[4][1] - prev_points[0][1]).total_seconds()
-    #     velocity = distance_traveled/total_time
+    prev_points.append((point, time_ros))
+    # only keep track of the last 4 points plus the current one
+    if len(prev_points) > 5:
+        prev_points.pop(0)
+    #default value for velocioty
+    velocity = 0
+    # compute velocity for every point after the first 4 
+    if len(prev_points) > 4:
+        distance_traveled = 0
+        for i in range(len(prev_points)-1):
+            distance_traveled += np.linalg.norm(prev_points[i][0] - prev_points[i+1][0])
+        total_time = (prev_points[4][1] - prev_points[0][1]).to_sec()
+        velocity = distance_traveled/total_time
     
-    # # check whether velocity is safe for segment 
-    # safe_ranges = [2.1043911825424666, 1.8191871053204132, 2.4426514688135, 2.54147152599213, 2.1777409348338157]
-    # #CONTROLLER 
-    # max_velocity_for_segment = safe_ranges[current_segment]
-    # #tune constant 
-    # kp = 1
-    # # kp(vmax - vcurr)
-    # control_input = kp * (max_velocity_for_segment - velocity)
+    # check whether velocity is safe for segment 
+    safe_ranges = [2.1043911825424666, 1.8191871053204132, 2.4426514688135, 2.54147152599213, 2.1777409348338157]
+    #CONTROLLER 
+    max_velocity_for_segment = safe_ranges[current_segment]
+    #tune constant 
+    kp = 1
+    # kp(vmax - vcurr)
+    control_input = kp * (max_velocity_for_segment - velocity)
 
-    # # now i have slope and intercept 
-    # # copy and paste the slope and itnerfcept from experiment 
-    # slope = 0
-    # intercept = 0
+    # now i have slope and intercept 
+    # copy and paste the slope and itnerfcept from experiment 
+    slope =  0.0211393133757082
+    intercept =  0.513633764310587
+
+
+
     
-    # #compute the control input 
-    # set_angle = (max_velocity_for_segment - intercept) / slope 
+    #compute the control input 
+    set_angle = (max_velocity_for_segment - intercept) / slope 
+    angle = int(set_angle)
+
+
     # if velocity >= max_velocity_for_segment:
     #     angle = set_angle
     # else:
@@ -143,9 +149,11 @@ def callback(data, ser):
     # else:
     #     angle = 0
     # print(current_segment)
-    print(current_segment)
-    angle = 180
-    
+    # print(current_segment)
+
+    print(angle)
+
+
 
 
 

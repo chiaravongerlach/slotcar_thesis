@@ -137,7 +137,19 @@ with open('rotation_pickle.pkl', 'wb') as file:
 
 
 
-ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2])
+transformations = df[['.transform.translation.x', '.transform.translation.y', '.transform.translation.z']]
+# Convert the pandas DataFrame to a NumPy array
+positions = transformations.to_numpy()
+df['datetime'] = pd.to_datetime(df['time'], format = '%Y/%m/%d/%H:%M:%S.%f')
+#create new column that calculates the time difference from every consecutive line 
+time_csv = (df['datetime'] - df['datetime'][0]).dt.total_seconds().to_numpy()
+#convert time to numpy 
+#time = csv_to_numpy_array_time(df)
+#set relative to origin start point , now every run starts at 0,0,0
+positions_reset = positions - positions[0]
+
+
+# ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2])
 # Scatter plot using 'x', 'y', 'z' columns, 'c' to color code by velocity 
 # sc = ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2], c=file['v_magnitude'], cmap='viridis')
 # ax.scatter()

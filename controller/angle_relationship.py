@@ -11,7 +11,7 @@ from scipy import stats
 #encode angle in the file name 
 #********** Iterate Through Runs  **********
 # To get all csv files in folder "processing"
-path = '../angle'
+path = '../angle_10'
 csv_files = glob.glob(path + "/*.csv")
 
 angles = []
@@ -44,10 +44,10 @@ for f in  csv_files:
         #once this distance is more than 0.2 (this is why it needs to use the filtered points so that it dosn't use an outlier)
         # then we make our vector and adjust the yaw 
         distance_traveled = 0
-        if distance_line > 0.5:
-            for r in range(i-5,i):
+        if distance_line > 0.3:
+            for r in range(i-10,i+10):
                 distance_traveled += np.linalg.norm(positions_reset[r] - positions_reset[r+1])
-            total_time = time_csv[i] - time_csv[i-5]
+            total_time = time_csv[i+10] - time_csv[i-10]
             velocity = distance_traveled/total_time
             break
     angles.append(angle)
