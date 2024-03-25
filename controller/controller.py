@@ -59,7 +59,7 @@ with open('rotation_pickle.pkl', 'rb') as file:
 def callback(data, ser):
 
     # get the car pose
-    rospy.loginfo("{:.3f}, {:.3f}, {:.3f}".format(data.transform.translation.x, data.transform.translation.y, data.transform.translation.z))
+    # rospy.loginfo("{:.3f}, {:.3f}, {:.3f}".format(data.transform.translation.x, data.transform.translation.y, data.transform.translation.z))
     '''
     Get car pose with the following syntax
     x = data.transform.translation.x
@@ -73,15 +73,15 @@ def callback(data, ser):
     '''
 
     
-    print("data x", data.transform.translation.x)
+    # print("data x", data.transform.translation.x)
     # for each point I want to set it relative to my complete run
     point = np.array([data.transform.translation.x, data.transform.translation.y, data.transform.translation.z])
     
-    print("point before ", point)
+    # print("point before ", point)
     point -= first_point
 
     point = rotation.apply(point)
-    print("point with rotation", point)
+    # print("point with rotation", point)
     
 
 
@@ -91,8 +91,8 @@ def callback(data, ser):
         if is_in_segment(point, segment):
             current_segment = i
             break
-    if current_segment == -1:
-        print("No segment found for point")
+    # if current_segment == -1:
+        # print("No segment found for point")
         
     
     # get time from point
@@ -117,12 +117,13 @@ def callback(data, ser):
     
     # check whether velocity is safe for segment 
     safe_ranges = [2.1043911825424666, 1.8191871053204132, 2.4426514688135, 2.54147152599213, 2.1777409348338157]
+    safe_ranges = list(np.array(safe_ranges)*.8)
     #CONTROLLER 
     max_velocity_for_segment = safe_ranges[current_segment]
     #tune constant 
-    kp = 1
-    # kp(vmax - vcurr)
-    control_input = kp * (max_velocity_for_segment - velocity)
+    # kp = 1
+    # # kp(vmax - vcurr)
+    # control_input = kp * (max_velocity_for_segment - velocity)
 
     # now i have slope and intercept 
     # copy and paste the slope and itnerfcept from experiment 
@@ -135,6 +136,7 @@ def callback(data, ser):
     #compute the control input 
     set_angle = (max_velocity_for_segment - intercept) / slope 
     angle = int(set_angle)
+
 
 
     # if velocity >= max_velocity_for_segment:
@@ -150,8 +152,6 @@ def callback(data, ser):
     #     angle = 0
     # print(current_segment)
     # print(current_segment)
-
-    print(angle)
 
 
 
@@ -180,8 +180,19 @@ def callback(data, ser):
     try:
         # the first and last number are used to check if the returned data is correct, 127
         # the 8 other values in between are dynamic data
-        ser.write(pack('3B', 255, angle, 255))
-        time.sleep(.01)
+
+        # if the speed is not the best speed:
+        if current_segment == 3: 
+            if velocity - max_velocity_for_segment < -0.2:
+                print("Override control with", angle)
+                ser.write(pack('3B', 255, angle, 255))
+                time.sleep(.1)
+        else:
+            if velocity - max_velocity_for_segment > 0.2:
+                print("Override control with", angle)
+                ser.write(pack('3B', 255, angle, 255))
+                time.sleep(.1)
+        
         # dat=ser.readline()
         
         # if dat!=b''and dat!=b'\r\n':
@@ -202,7 +213,7 @@ def callback(data, ser):
         # time.sleep(0.1)
     except serial.SerialTimeoutException:
         ser.flush()
-    except:
+    except Exception as e:
         print(str(sys.exc_info())) #print error
     
 def listener(ser):
@@ -212,7 +223,7 @@ def listener(ser):
 
 if __name__ == '__main__':
     try:
-        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/tty.usbmodem1101', write_timeout=0.2)
+        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/tty.usbmodem101', write_timeout=0.2)
     except:
         print('Port open error')
     listener(ser)

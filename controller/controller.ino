@@ -1,4 +1,5 @@
 #include <Servo.h>
+#define COMMAND_TIMEOUT 50
 
 Servo controller;
 byte angle;
@@ -6,24 +7,34 @@ byte myArray[3];
 byte* ddata = reinterpret_cast<byte*>(&myArray);
 size_t pcDataLen = sizeof(myArray);
 bool newData = false;
+unsigned long command_timer;
 
 void setup() {
   controller.attach(11);
   Serial.begin(9600);
   angle = 0;
   controller.write(angle);
+  command_timer = millis();
 }
 
 void loop() {
   checkForNewData();
   if (newData == true) {
     newData = false;
-    response(myArray[0], myArray[1], myArray[2]); //here write the send data
+//    response(myArray[0], myArray[1], myArray[2]); //here write the send data
     if(myArray[0] == 255 && myArray[2] == 255){
       angle = myArray[1];
+      controller.attach(11);
+      controller.write(angle);
+      command_timer = millis();
     }
   }
-  controller.write(angle);
+
+  if(millis() - command_timer > COMMAND_TIMEOUT){
+    // turn off servo motor --> regain human control
+    controller.detach();
+  }
+  
 }
 
 void checkForNewData () {
