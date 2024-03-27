@@ -11,6 +11,7 @@ from scipy.spatial.transform import Rotation as R
 import glob 
 import math
 from pyspline import Curve 
+import pickle
 
 #********** Check Sampling of data collection  **********
 def check_sampling(loop, file):
@@ -292,6 +293,12 @@ print(boundary_s)
 # for s in boundary_s:
 #     point1 = curve(s)
 #     ax.plot(point1[0], point1[1], point1[2], 'ko', markersize = 15)
+
+# pickle the spline 
+
+# Pickle the object and save it to a file
+with open('spline_pickle.pkl', 'wb') as file:
+    pickle.dump(curve, file)
 
 
     

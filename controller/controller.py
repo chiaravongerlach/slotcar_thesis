@@ -10,6 +10,7 @@ from geometry_msgs.msg import TransformStamped
 import socket
 import numpy as np
 from datetime import datetime
+import math
 
 #********** Create Segments  **********
 """
@@ -52,8 +53,12 @@ prev_points = []
 with open('rotation_pickle.pkl', 'rb') as file:
     rotation, first_point, segments = pickle.load(file)
 
-
-
+# Import curve spline  
+path_to_spline = '../scripts/spline_pickle.pkl'
+with open(path_to_spline, 'rb') as file:
+    curve = pickle.load(file)
+# boundary parameters 
+s_boundaries = np.array([0.16728997170415225, 0.38172251444432276, 0.4547539216041566, 0.8032837862743827, 0.9823663123352225])
 
 
 def callback(data, ser):
@@ -82,8 +87,9 @@ def callback(data, ser):
 
     point = rotation.apply(point)
     # print("point with rotation", point)
-    
 
+    # find the s on spline that corresponds to current point
+    s_for_point, _ = curve.projectPoint(point)
 
     #check which point segment is in 
     current_segment = -1
@@ -93,7 +99,22 @@ def callback(data, ser):
             break
     # if current_segment == -1:
         # print("No segment found for point")
-        
+    
+    s_current = s_boundaries[current_segment]
+
+    # find the distance between points coresponding to both s's 
+    if s_current > s_for_point:
+        spline_to_boundary = curve.windowCurve(s_for_point, s_current) 
+        distance_to_next_segment = spline_to_boundary.getLength()
+    else:
+        spline_to_boundary = curve.windowCurve(s_for_point, 1) 
+        remaining_distance = spline_to_boundary.getLength()
+        spline_to_boundary = curve.windowCurve(0, s_current) 
+        extra_distance = spline_to_boundary.getLength()
+        distance_to_next_segment = remaining_distance + extra_distance
+
+
+
     
     # get time from point
     # format = '%Y/%m/%d/%H:%M:%S.%f'
@@ -119,7 +140,31 @@ def callback(data, ser):
     safe_ranges = [2.1043911825424666, 1.8191871053204132, 2.4426514688135, 2.54147152599213, 2.1777409348338157]
     safe_ranges = list(np.array(safe_ranges)*.8)
     #CONTROLLER 
-    max_velocity_for_segment = safe_ranges[current_segment]
+
+    # only if we find a segment do we have the max_velocity, otherwise what do we want to do? 
+    if current_segment != -1:
+        velocity_limit = safe_ranges[current_segment]
+    else: # set to the speed of the loop because that is the only place where we should maybe not get -1
+        velocity_limit = safe_ranges[3]
+    
+    # get acceleration 
+    acc = 0
+
+    max_acc = 1
+    max_decc = -1
+    if current_segment ==2:
+        acc = max_acc 
+    else:
+        acc = max_decc
+
+    # for next time step 0.1
+    distance_to_next_segment-= 0.1*velocity
+
+    velocity_at_boundary = math.sqrt(max(0, velocity**2 + (2*acc*distance_to_next_segment)))
+
+
+
+    
     #tune constant 
     # kp = 1
     # # kp(vmax - vcurr)
@@ -133,9 +178,11 @@ def callback(data, ser):
 
 
     
-    #compute the control input 
-    set_angle = (max_velocity_for_segment - intercept) / slope 
+    #setting the angle to the safe range velocity
+    set_angle = (velocity_limit - intercept) / slope 
     angle = int(set_angle)
+
+
 
 
 
@@ -175,23 +222,51 @@ def callback(data, ser):
    
 
     # process the targeted velocity and send the angle to the Arduino via serial
+    # check position 
     
 
     try:
         # the first and last number are used to check if the returned data is correct, 127
         # the 8 other values in between are dynamic data
 
-        # if the speed is not the best speed:
-        if current_segment == 3: 
-            if velocity - max_velocity_for_segment < -0.2:
-                print("Override control with", angle)
-                ser.write(pack('3B', 255, angle, 255))
-                time.sleep(.1)
-        else:
-            if velocity - max_velocity_for_segment > 0.2:
-                print("Override control with", angle)
-                ser.write(pack('3B', 255, angle, 255))
-                time.sleep(.1)
+
+        # I need the vmin and vmax of the next segment and current segment 
+        # for i = 0,1,2,4 the vmin is 0 , vmax is safe_range[curr_seg]
+        # for i = 3, the vmin is safe_ranges[current_seg] and the vmax is 1.5* safe_range[4] so that it stays safe the next loop 
+        # we need the distance from the current point to the next segment, to do that we need to know what segment we are in 
+        # and what the next segment is 
+        #       curr segmeent
+        #       if i = 0,1,2,3, next seg = curr_seg+1
+        #       if i ==4, next_seg = 0
+        # if i find the point on the spline that corresponds to the start of each segment then I can find the distance 
+        # betweent he point i am at and that point on the spline
+        # if distance <0.3 
+            # if velcoity ......
+
+        if velocity_at_boundary > velocity_limit and current_segment != 2:
+            print("Override control with", angle)
+            ser.write(pack('3B', 255, 0, 255))
+            time.sleep(.1)
+        if velocity_at_boundary < velocity_limit and current_segment == 2:
+            print("Override control with", angle)
+            ser.write(pack('3B', 255, 130, 255))
+            time.sleep(.1)
+        
+    
+
+
+
+        # # if the speed is not the best speed:
+        # if current_segment == 3: 
+        #     if velocity - velocity_limit < -0.2:
+        #         print("Override control with", angle)
+        #         ser.write(pack('3B', 255, angle, 255))
+        #         time.sleep(.1)
+        # else:
+        #     if velocity - velocity_limit > 0.2:
+        #         print("Override control with", angle)
+        #         ser.write(pack('3B', 255, angle, 255))
+        #         time.sleep(.1)
         
         # dat=ser.readline()
         
