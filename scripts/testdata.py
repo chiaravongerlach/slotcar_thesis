@@ -52,9 +52,17 @@ file['datetime'] = pd.to_datetime(file['time'], format = '%Y/%m/%d/%H:%M:%S.%f')
 # new column delta_t calculates the difference between each consecutive row
 file['delta_t'] = file['datetime'].diff().dt.total_seconds()
 
+
+
+
 # Create numpy array of each position in complete csv file 
 complete_positions = file[['.transform.translation.x', '.transform.translation.y', '.transform.translation.z']]
 complete_array = complete_positions.to_numpy()
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+sc = ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2], c=file['v_magnitude'], cmap='viridis')
+
+
 # print the first point in the complete_array
 #print ("first point = %s " % complete_array[0] )
 
@@ -264,10 +272,9 @@ crash_vel = [[] for _ in range(len(segments))]
 
 #********** Plotting  **********
 # Create a new matplotlib figure and 3D axis
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+
 # Scatter plot using 'x', 'y', 'z' columns, 'c' to color code by velocity 
-sc = ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2], c=file['v_magnitude'], cmap='viridis')
+# sc = ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2], c=file['v_magnitude'], cmap='viridis')
 # Create a colorbar to show the time values
 cbar = plt.colorbar(sc)
 cbar.set_label('Velocity')
@@ -515,7 +522,7 @@ for f in  csv_files:
     # print("angle", angle_degrees)
 
     #plot the crash 
-    ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
+    # ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
 
 
     
