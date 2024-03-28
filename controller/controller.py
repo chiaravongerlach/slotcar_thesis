@@ -284,7 +284,13 @@ def callback(data, ser):
 
 
     # print("points", s_point)
-            angle of vmin or vmax [of next segment]
+    
+    # angle of vmin or vmax [of next segment]
+    # use the slope and intercept to set an angle that makes the acceleration smooth
+    # jaime says to make a set angle function that gives you the desired angle and just make the angle equal to the 
+    # max or min velocity we want to be at at the next segment
+    # we can use the if filter_decc? to set the angle to the 
+    # this is to implement a smooth transition 
 
     
     # Safety intervention switching-typ logic (either max accel or min decel)
