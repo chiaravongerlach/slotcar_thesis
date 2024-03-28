@@ -39,16 +39,24 @@ turn_2 -= start_point
 # Use this to iterature through the segments later on when you wanna check what point crashed 
 segments = [line_1, turn_1, line_2, loop, turn_2]
 
-#********** Returns True if point is in segment  **********
 def is_in_segment(point_t, segment):
+    '''Returns True if point is in the rectangle containing a segment of the track. '''
     if segment[1,0] <= point_t[0] and point_t[0] <= segment[0,0] and segment[1,1] <= point_t[1] and point_t[1] <= segment[0,1]:
         return True 
     else: 
         return False
+
+def get_segment(s_point, s_boundaries):
+    ''' Returns the spline segment a curve parameter belongs to.'''
+    for i, endpoint in enumerate(s_boundaries):
+        if endpoint > s_point:
+            return i
+    return 0  #  handle the corner case in which s_point is past the last endpoint
     
 
 #********** Create list to store previous points in  **********
 prev_points = []
+control_times = []
 #import rotation pickle and first point 
 with open('rotation_pickle.pkl', 'rb') as file:
     rotation, first_point, segments = pickle.load(file)
@@ -58,9 +66,30 @@ path_to_spline = '../scripts/spline_pickle.pkl'
 with open(path_to_spline, 'rb') as file:
     curve = pickle.load(file)
 # boundary parameters 
-# s_boundaries = np.array([0.16728997170415225, 0.38172251444432276, 0.4547539216041566, 0.8032837862743827, 0.9823663123352225])
-s_boundaries = np.array([0.16728997170415225, 0.38172251444432276, 0.5400, 0.8032837862743827, 0.9823663123352225])
+# s_boundaries = np.array([0.16728997170415225, 0.38172251444432276, 0.4547539216041566, 0.8032837862743827, 1.0)
+s_boundaries = np.array([0.16728997170415225, 0.38172251444432276, 0.4547539216041566, 0.8032837862743827, 0.9823663123352225])
+# s_boundaries = np.array([0.16728997170415225, 0.38172251444432276, 0.5400, 0.8032837862743827, 0.9823663123352225])
+n_segments = len(s_boundaries)
 
+# Note: the last segment (which really ends at 1.0) slightly overlaps with the first stegment (which starts at 0.0).
+# to avoid length miscalculations, we set the endpoint at ~0.98, where the first segement begins.
+# If a point gets mapped to s in [~0.98, 1.0), we need to remap it to the first segment.
+
+def distance_along_curve(s_start, s_end, curve):
+    ''' Returns the distance to the next segment along a periodic spline curve.
+
+    Automatically handles slight overlaps between the end and start of the spline.
+    '''
+    if s_end > s_start:
+        spline_to_boundary = curve.windowCurve(s_start, s_end) 
+        distance_to_next_segment = spline_to_boundary.getLength()
+    else:  # handle the odd case where we need to switch from the end to the beginning of the spline.
+        spline_to_boundary = curve.windowCurve(s_start, 1) 
+        distance_to_curve_end = spline_to_boundary.getLength()
+        spline_to_boundary = curve.windowCurve(0, s_end) 
+        distance_from_curve_start = spline_to_boundary.getLength()
+        distance_to_next_segment = distance_from_curve_start - distance_to_curve_end
+    return distance_to_next_segment
 
 def callback(data, ser):
 
@@ -77,7 +106,19 @@ def callback(data, ser):
     rw = x = data.transform.rotation.w
 
     '''
+    # maximum and minimum acceleration commands available to the safety filter
+    max_acc = 5.1869433048767375
+    max_decc = -5.979429307875425
 
+    # velocity constraints in each segment
+    # safe_ranges = [2.1043911825424666, 1.8191871053204132, 2.4426514688135, 2.54147152599213, 2.1777409348338157]
+    max_speeds = [2.1043911825424666, 1.8191871053204132, 2.4426514688135, 3., 2.1777409348338157]
+    # min_speeds = [0., 0., 0., 2.54147152599213, 0.]
+    min_speeds = [0., 0., 0., 2.0, 0.]
+    
+    #  apply a small safety factor to the empirical crash speeds
+    max_speeds = list(np.array(max_speeds)*.8)
+    min_speeds = list(np.array(min_speeds)*1.2)
     
     # print("data x", data.transform.translation.x)
     # for each point I want to set it relative to my complete run
@@ -89,88 +130,121 @@ def callback(data, ser):
     point = rotation.apply(point)
     # print("point with rotation", point)
 
-    # find the s on spline that corresponds to current point
-    s_for_point, _ = curve.projectPoint(point)
-    #handle error with split curve of calling window curve(1,1)
-    if s_for_point ==1.0:
-        s_for_point = 0.999999
-    
 
-    #check which point segment is in 
-    current_segment = -1
-    for i, segment in enumerate(segments):   
-        if is_in_segment(point, segment):
-            current_segment = i
-            break
-    # if current_segment == -1:
-        # print("No segment found for point")
-    
-    s_current = s_boundaries[current_segment]
-
-    # find the distance between points coresponding to both s's 
-    if s_current > s_for_point:
-        spline_to_boundary = curve.windowCurve(s_for_point, s_current) 
-        distance_to_next_segment = spline_to_boundary.getLength()
-    else:
-        spline_to_boundary = curve.windowCurve(s_for_point, 1) 
-        remaining_distance = spline_to_boundary.getLength()
-        spline_to_boundary = curve.windowCurve(0, s_current) 
-        extra_distance = spline_to_boundary.getLength()
-        distance_to_next_segment = remaining_distance + extra_distance
-
-
-
-    
-    # get time from point
+        # get time from point
     # format = '%Y/%m/%d/%H:%M:%S.%f'
     # time = datetime.strptime(data.time, format)
 
-    time_ros = data.header.stamp
+    # compute the time delay from the last measurement to the current control cycle
+    time_data = data.header.stamp  # time at which the position data was obtained
+    time_now = rospy.Time.now()  # time at which this line of code is being executed
+    delay = (time_now - time_data).to_sec()  # delay between our latest data measurement and right now
+    # print("delay: ", delay.nsecs/1e9)
+
+    # approximate the current velocity and control cycle duration using the last few measurements
+    history_length = 4
     # # FIFO list buffer
-    prev_points.append((point, time_ros))
-    # only keep track of the last 4 points plus the current one
-    if len(prev_points) > 4:
+    prev_points.append((point, time_data))
+    control_times.append(time_now)
+    # only keep track of the last history_length points
+    if len(prev_points) > history_length:
         prev_points.pop(0)
-    #default value for velocioty
-    velocity = 0
-    # compute velocity for every point after the first 4 
-    if len(prev_points) > 3:
+        control_times.pop(0)
+    if len(prev_points) > 1:
+        avg_ctrl_time = (control_times[-1] - control_times[0]).to_sec()/(len(control_times)-1)
+    else:
+        avg_ctrl_time = 0.02  # conservative control cycle estimate
+    # compute velocity for every point after the first history_length, and get running average of the control cycle time
+    if len(prev_points) >= history_length:
         distance_traveled = 0
         for i in range(len(prev_points)-1):
+            # approximate distance traveled through a straight line segment
             distance_traveled += np.linalg.norm(prev_points[i][0] - prev_points[i+1][0])
-        total_time = (prev_points[3][1] - prev_points[0][1]).to_sec()
+        total_time = (prev_points[-1][1] - prev_points[0][1]).to_sec()
         velocity = distance_traveled/total_time
-    
-    # check whether velocity is safe for segment 
-    safe_ranges = [2.1043911825424666, 1.8191871053204132, 2.4426514688135, 2.54147152599213, 2.1777409348338157]
-    safe_range_loop = safe_ranges[3]
-    safe_ranges = list(np.array(safe_ranges)*.6)
-    safe_ranges[3] = safe_range_loop /.2
-    #CONTROLLER 
-
-
-
-    if current_segment !=4:
-        velocity_limit = safe_ranges[current_segment + 1]
+        # print("time between last 2 measurements: ", (prev_points[-1][1] - prev_points[-2][1]).to_sec())
+        # print("time since last cycle", (control_times[-1] - control_times[-2]).to_sec())
+        # print("average control cycle time ", avg_ctrl_time)
     else:
-        velocity_limit = safe_ranges[0]
+        velocity = 0  # default value for velocioty
     
-    max_acc = 5.1869433048767375
-    max_decc = -5.979429307875425
-    if current_segment ==2:
-        acc = max_acc 
-    else:
+    # approximate distance traveled since last measurement assuming constant speed
+    distance_since_measurement = velocity * delay
+
+    # find the s on spline that corresponds to last measured position
+    s_measured, _ = curve.projectPoint(point)
+    # handle error with split curve of calling window curve(1,1)
+    if s_measured == 1.0:
+        s_measured = 0.999999
+    
+
+    # SAFETY MONITOR
+    
+    filter_acc = False
+    filter_dec = False
+    #check which point segment we are currently in
+    # current_segment = -1
+    # for i, segment in enumerate(segments):   
+    #     if is_in_segment(point, segment):
+    #         current_segment = i
+    #         break
+    current_segment = get_segment(s_measured, s_boundaries)
+    # if current_segment == -1:
+        # print("No segment found for point")
+    s_segment_end = s_boundaries[current_segment]
+    distance_to_next = distance_along_curve(s_measured, s_segment_end, curve)
+    distance_to_next -= distance_since_measurement  # adjust for control delay: where are we now?
+    # assuming we are maintaining current velocity as opposed to following humans command which we would need to be able 
+    # to read state of the human command 
+    distance_to_next -= velocity * avg_ctrl_time  # if we let car keep going, where will we be next time step?
+    v_max_next = max_speeds[(current_segment + 1) % n_segments]
+    v_min_next = min_speeds[(current_segment + 1) % n_segments]
+
+
+    # if we advance into future segments, update distance and consider all velocity constraints
+    while (distance_to_next < 0):
+        if velocity > v_max_next:
+            filter_dec = True
+        elif velocity < v_min_next:
+            filter_acc = True
+        current_segment = (current_segment + 1) % n_segments  # advance to next segment
+        s_segment_start = s_segment_end
+        s_segment_end = s_boundaries[current_segment]
+        distance_to_next += distance_along_curve(s_segment_start, s_segment_end, curve)  # distance to the next segment's end
+        next_segment = (current_segment + 1) % n_segments  # redefine the next segment
+        v_max_next = max_speeds[next_segment]
+        v_min_next = min_speeds[next_segment]
+    
+    # Safety monitor logic of the filter: need to accelerate/need to decelerate     
+    if velocity > v_max_next:
         acc = max_decc
+        velocity_at_boundary = math.sqrt(max(0, velocity**2 + (2*acc*distance_to_next)))
+        if velocity_at_boundary > v_max_next:
+            filter_dec = True
+    elif velocity < v_min_next:
+        acc = max_acc
+        velocity_at_boundary = math.sqrt(max(0, velocity**2 + (2*acc*distance_to_next)))
+        if velocity_at_boundary < v_min_next:
+            filter_acc = True
+
+    # if current_segment !=4:
+    #     velocity_limit = safe_ranges[current_segment + 1]
+    # else:
+    #     velocity_limit = safe_ranges[0]
+    # if current_segment ==2:
+    #     acc = max_acc 
+    # else:
+    #     acc = max_decc
 
     # for next time step 0.1
     
-    distance_to_next_segment-= 0.15*velocity
-
-    velocity_at_boundary = math.sqrt(max(0, velocity**2 + (2*acc*distance_to_next_segment)))
-
+    # distance_to_next_segment-= 0.1*velocity
+    # velocity_at_boundary = math.sqrt(max(0, velocity**2 + (2*acc*distance_to_next_segment)))
 
 
+    # SAFETY INTERVENTION
     
+    # Safety intervention smooth-type logic
     #tune constant 
     # kp = 1
     # # kp(vmax - vcurr)
@@ -180,17 +254,9 @@ def callback(data, ser):
     # copy and paste the slope and itnerfcept from experiment 
     # slope =  0.0211393133757082
     # intercept =  0.513633764310587
-
-
-
-    
-    # #setting the angle to the safe range velocity
+    # # #setting the angle to the safe range velocity
     # set_angle = (velocity_limit - intercept) / slope 
     # angle = int(set_angle)
-
-
-
-
 
     # if velocity >= max_velocity_for_segment:
     #     angle = set_angle
@@ -205,99 +271,54 @@ def callback(data, ser):
     #     angle = 0
     # print(current_segment)
     # print(current_segment)
-
-
-
-
-
-
-
-
-
-    
-    
-    print("points", s_for_point)
-
-    # print("x:", data.transform.translation.x, "y:", data.transform.translation.y, "z:", data.transform.translation.z)
-    # save first point
-    # subtract first point from eahc point adn apply rotation from pickle object and then with the copy pasted isinsegment then
-    # i am gonna check what segment its in and then compare it to safe range and then clip . 
-    # for velocity keep a buffer of the last ten time steps and keep list of last ten 
-
-    # calculate the velocity based on the received vicon data
-   
-
-    # process the targeted velocity and send the angle to the Arduino via serial
-    # check position 
-    
-
-    try:
-        # the first and last number are used to check if the returned data is correct, 127
-        # the 8 other values in between are dynamic data
-
-
-        # I need the vmin and vmax of the next segment and current segment 
-        # for i = 0,1,2,4 the vmin is 0 , vmax is safe_range[curr_seg]
-        # for i = 3, the vmin is safe_ranges[current_seg] and the vmax is 1.5* safe_range[4] so that it stays safe the next loop 
-        # we need the distance from the current point to the next segment, to do that we need to know what segment we are in 
-        # and what the next segment is 
-        #       curr segmeent
-        #       if i = 0,1,2,3, next seg = curr_seg+1
-        #       if i ==4, next_seg = 0
-        # if i find the point on the spline that corresponds to the start of each segment then I can find the distance 
-        # betweent he point i am at and that point on the spline
-        # if distance <0.3 
-            # if velcoity ......
-        print("limit", velocity_limit)
-        print("boundary", velocity_at_boundary)
-
-        
-        if velocity_at_boundary > velocity_limit and current_segment != 2:
+    if filter_dec:
             angle= 0
             print("Override control with max deccel")
-            
             ser.write(pack('3B', 255, angle, 255))
             time.sleep(.1)
-        if velocity_at_boundary < velocity_limit and current_segment == 2:
+    elif filter_acc:
             angle=90
             print("Override control with max accel")
             ser.write(pack('3B', 255, angle, 255))
             time.sleep(.1)
-        
+
+
+    # print("points", s_point)
+            angle of vmin or vmax [of next segment]
+
     
+    # Safety intervention switching-typ logic (either max accel or min decel)
+    try:
+        if filter_dec:
+            angle= 0
+            print("Override control with max deccel")
+            ser.write(pack('3B', 255, angle, 255))
+            time.sleep(.1)
+        elif filter_acc:
+            angle=90
+            print("Override control with max accel")
+            ser.write(pack('3B', 255, angle, 255))
+            time.sleep(.1)
 
+    # try:
 
+    #     # print("limit", velocity_limit)
+    #     # print("boundary", velocity_at_boundary)
 
-        # # if the speed is not the best speed:
-        # if current_segment == 3: 
-        #     if velocity - velocity_limit < -0.2:
-        #         print("Override control with", angle)
-        #         ser.write(pack('3B', 255, angle, 255))
-        #         time.sleep(.1)
-        # else:
-        #     if velocity - velocity_limit > 0.2:
-        #         print("Override control with", angle)
-        #         ser.write(pack('3B', 255, angle, 255))
-        #         time.sleep(.1)
         
-        # dat=ser.readline()
+    #     if velocity_at_boundary > velocity_limit and current_segment != 2:
+    #         angle= 0
+    #         print("Override control with max deccel")
+            
+    #         ser.write(pack('3B', 255, angle, 255))
+    #         time.sleep(.1)
+    #     if velocity_at_boundary < velocity_limit and current_segment == 2:
+    #         angle=90
+    #         print("Override control with max accel")
+    #         ser.write(pack('3B', 255, angle, 255))
+    #         time.sleep(.1)
         
-        # if dat!=b''and dat!=b'\r\n':
-        #     try:
-        #         dats=str(dat)
-        #         dat1=dats.replace("b","")
-        #         dat2=dat1.replace("'",'')
-        #         dat3=dat2[:-4]
-        #         data_list=ast.literal_eval(dat3)
-        #         # check to see if data returned is correct
-        #         if data_list[0] == 255 and data_list[-1] == 255:
-        #             print("Correct:", data_list)
-        #         else:
-        #             print("Wrong data:", data_list)
-        #         # print(dat3)
-        #     except:
-        #         print('Error in corvert, readed: ', dats)
-        # time.sleep(0.1)
+
     except serial.SerialTimeoutException:
         ser.flush()
     except Exception as e:
@@ -310,7 +331,7 @@ def listener(ser):
 
 if __name__ == '__main__':
     try:
-        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/tty.usbmodem101', write_timeout=0.2)
+        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/tty.usbmodem1101', write_timeout=0.2)
     except:
         print('Port open error')
     listener(ser)
