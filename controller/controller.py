@@ -58,7 +58,8 @@ path_to_spline = '../scripts/spline_pickle.pkl'
 with open(path_to_spline, 'rb') as file:
     curve = pickle.load(file)
 # boundary parameters 
-s_boundaries = np.array([0.16728997170415225, 0.38172251444432276, 0.4547539216041566, 0.8032837862743827, 0.9823663123352225])
+# s_boundaries = np.array([0.16728997170415225, 0.38172251444432276, 0.4547539216041566, 0.8032837862743827, 0.9823663123352225])
+s_boundaries = np.array([0.16728997170415225, 0.38172251444432276, 0.5400, 0.8032837862743827, 0.9823663123352225])
 
 
 def callback(data, ser):
@@ -90,6 +91,10 @@ def callback(data, ser):
 
     # find the s on spline that corresponds to current point
     s_for_point, _ = curve.projectPoint(point)
+    #handle error with split curve of calling window curve(1,1)
+    if s_for_point ==1.0:
+        s_for_point = 0.999999
+    
 
     #check which point segment is in 
     current_segment = -1
@@ -124,41 +129,42 @@ def callback(data, ser):
     # # FIFO list buffer
     prev_points.append((point, time_ros))
     # only keep track of the last 4 points plus the current one
-    if len(prev_points) > 5:
+    if len(prev_points) > 4:
         prev_points.pop(0)
     #default value for velocioty
     velocity = 0
     # compute velocity for every point after the first 4 
-    if len(prev_points) > 4:
+    if len(prev_points) > 3:
         distance_traveled = 0
         for i in range(len(prev_points)-1):
             distance_traveled += np.linalg.norm(prev_points[i][0] - prev_points[i+1][0])
-        total_time = (prev_points[4][1] - prev_points[0][1]).to_sec()
+        total_time = (prev_points[3][1] - prev_points[0][1]).to_sec()
         velocity = distance_traveled/total_time
     
     # check whether velocity is safe for segment 
     safe_ranges = [2.1043911825424666, 1.8191871053204132, 2.4426514688135, 2.54147152599213, 2.1777409348338157]
-    safe_ranges = list(np.array(safe_ranges)*.8)
+    safe_range_loop = safe_ranges[3]
+    safe_ranges = list(np.array(safe_ranges)*.6)
+    safe_ranges[3] = safe_range_loop /.2
     #CONTROLLER 
 
-    # only if we find a segment do we have the max_velocity, otherwise what do we want to do? 
-    if current_segment != -1:
-        velocity_limit = safe_ranges[current_segment]
-    else: # set to the speed of the loop because that is the only place where we should maybe not get -1
-        velocity_limit = safe_ranges[3]
-    
-    # get acceleration 
-    acc = 0
 
-    max_acc = 1
-    max_decc = -1
+
+    if current_segment !=4:
+        velocity_limit = safe_ranges[current_segment + 1]
+    else:
+        velocity_limit = safe_ranges[0]
+    
+    max_acc = 5.1869433048767375
+    max_decc = -5.979429307875425
     if current_segment ==2:
         acc = max_acc 
     else:
         acc = max_decc
 
     # for next time step 0.1
-    distance_to_next_segment-= 0.1*velocity
+    
+    distance_to_next_segment-= 0.15*velocity
 
     velocity_at_boundary = math.sqrt(max(0, velocity**2 + (2*acc*distance_to_next_segment)))
 
@@ -172,15 +178,15 @@ def callback(data, ser):
 
     # now i have slope and intercept 
     # copy and paste the slope and itnerfcept from experiment 
-    slope =  0.0211393133757082
-    intercept =  0.513633764310587
+    # slope =  0.0211393133757082
+    # intercept =  0.513633764310587
 
 
 
     
-    #setting the angle to the safe range velocity
-    set_angle = (velocity_limit - intercept) / slope 
-    angle = int(set_angle)
+    # #setting the angle to the safe range velocity
+    # set_angle = (velocity_limit - intercept) / slope 
+    # angle = int(set_angle)
 
 
 
@@ -210,7 +216,7 @@ def callback(data, ser):
 
     
     
-
+    print("points", s_for_point)
 
     # print("x:", data.transform.translation.x, "y:", data.transform.translation.y, "z:", data.transform.translation.z)
     # save first point
@@ -242,14 +248,20 @@ def callback(data, ser):
         # betweent he point i am at and that point on the spline
         # if distance <0.3 
             # if velcoity ......
+        print("limit", velocity_limit)
+        print("boundary", velocity_at_boundary)
 
+        
         if velocity_at_boundary > velocity_limit and current_segment != 2:
-            print("Override control with", angle)
-            ser.write(pack('3B', 255, 0, 255))
+            angle= 0
+            print("Override control with max deccel")
+            
+            ser.write(pack('3B', 255, angle, 255))
             time.sleep(.1)
         if velocity_at_boundary < velocity_limit and current_segment == 2:
-            print("Override control with", angle)
-            ser.write(pack('3B', 255, 130, 255))
+            angle=90
+            print("Override control with max accel")
+            ser.write(pack('3B', 255, angle, 255))
             time.sleep(.1)
         
     

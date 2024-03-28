@@ -29,7 +29,7 @@ from pyspline import Curve
 
 # import velocitites 
 
-with open('list_vel', 'r') as file:
+with open('list_vel_accel', 'r') as file:
     velocity_and_times = json.load(file)
 
 velocities = velocity_and_times[0]
@@ -43,8 +43,5 @@ plt.plot(times[30:40], velocities[30:40])
 #to get slope 
 
 slope, _ = np.polyfit(times[30:40], velocities[30:40], 1)
-print("max decceleration", slope)
+print("max accel", slope)
 plt.show()
-
-
-

@@ -68,6 +68,7 @@ saved_data = False
 times = []
 firsttime = 0
 def callback(data, ser):
+    global received_first_point, firstpoint, firsttime, currently_deccelerating, velocities, times, saved_data
 
     # get the car pose
     # rospy.loginfo("{:.3f}, {:.3f}, {:.3f}".format(data.transform.translation.x, data.transform.translation.y, data.transform.translation.z))
@@ -84,6 +85,7 @@ def callback(data, ser):
     '''
     time_ros = data.header.stamp
 
+
     
     # print("data x", data.transform.translation.x)
     # for each point I want to set it relative to my complete run
@@ -94,27 +96,13 @@ def callback(data, ser):
 
     point = rotation.apply(point)
 
-
+    angle = 90
     if not received_first_point:
         firstpoint = point
         firsttime = time_ros
         received_first_point = True
-    else:
-        d = np.linalg.norm(point - firstpoint)
-        if d > 0.3:
-            currently_deccelerating=True
+    
 
-    if currently_deccelerating:
-        angle = 0
-    else:
-        angle = 90
-    
-    
-    # get time from point
-    # format = '%Y/%m/%d/%H:%M:%S.%f'
-    # time = datetime.strptime(data.time, format)
-
-    
     # # FIFO list buffer
     prev_points.append((point, time_ros))
     # only keep track of the last 4 points plus the current one
@@ -129,48 +117,20 @@ def callback(data, ser):
             distance_traveled += np.linalg.norm(prev_points[i][0] - prev_points[i+1][0])
         total_time = (prev_points[4][1] - prev_points[0][1]).to_sec()
         velocity = distance_traveled/total_time
-    
-    if currently_deccelerating:
-        velocities.append(velocity)
-        times.append((time_ros - firsttime).to_sec())
-    
-    if currently_deccelerating and velocity < 0.1 and not saved_data:
+
+    velocities.append(velocity)
+    times.append((time_ros - firsttime).to_sec())
+    d = np.linalg.norm(point - firstpoint)
+    if d > 0.3 and not saved_data:
         saved_data = True
-
-        with open('list_vel', 'w') as file:
+        with open('list_vel_accel', 'w') as file:
             json.dump([velocities, times], file)
-        
-        
-
-
-    
-    
-  
     
 
     try:
         ser.write(pack('3B', 255, angle, 255))
         time.sleep(.01)
 
-        
-
-        
-        # if dat!=b''and dat!=b'\r\n':
-        #     try:
-        #         dats=str(dat)
-        #         dat1=dats.replace("b","")
-        #         dat2=dat1.replace("'",'')
-        #         dat3=dat2[:-4]
-        #         data_list=ast.literal_eval(dat3)
-        #         # check to see if data returned is correct
-        #         if data_list[0] == 255 and data_list[-1] == 255:
-        #             print("Correct:", data_list)
-        #         else:
-        #             print("Wrong data:", data_list)
-        #         # print(dat3)
-        #     except:
-        #         print('Error in corvert, readed: ', dats)
-        # time.sleep(0.1)
     except serial.SerialTimeoutException:
         ser.flush()
     except Exception as e:
