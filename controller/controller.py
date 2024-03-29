@@ -252,11 +252,10 @@ def callback(data, ser):
 
     # now i have slope and intercept 
     # copy and paste the slope and itnerfcept from experiment 
-    # slope =  0.0211393133757082
-    # intercept =  0.513633764310587
+    slope =  0.0211393133757082
+    intercept =  0.513633764310587
     # # #setting the angle to the safe range velocity
-    # set_angle = (velocity_limit - intercept) / slope 
-    # angle = int(set_angle)
+    
 
     # if velocity >= max_velocity_for_segment:
     #     angle = set_angle
@@ -271,19 +270,48 @@ def callback(data, ser):
     #     angle = 0
     # print(current_segment)
     # print(current_segment)
-    if filter_dec:
-            angle= 0
-            print("Override control with max deccel")
-            ser.write(pack('3B', 255, angle, 255))
-            time.sleep(.1)
-    elif filter_acc:
-            angle=90
-            print("Override control with max accel")
-            ser.write(pack('3B', 255, angle, 255))
-            time.sleep(.1)
+    # if filter_dec:
+    #         angle= 0
+    #         print("Override control with max deccel")
+    #         ser.write(pack('3B', 255, angle, 255))
+    #         time.sleep(.1)
+    # elif filter_acc:
+    #         angle=90
+    #         print("Override control with max accel")
+    #         ser.write(pack('3B', 255, angle, 255))
+    #         time.sleep(.1)
+            
+
+    # v_ref = v max or v min at the next segment 
+    # if filter_dec then set speed angle to vmax of next segment 
+    # if filter_acc then spped_toangle(vmin of next segment)
+    # call speed to angle of (v_ref)
+    def speed_to_angle(v_ref, slope, intercept):
+        set_angle = (v_ref - intercept) / slope 
+        angle = int(set_angle)
+        return angle 
+
+    intervention_mode = 'smooth'
+    # intervention_mode = 'switch'
+
+    if intervention_mode == 'smooth':
+        if filter_dec:
+            angle = speed_to_angle(v_max_next)
+        elif filter_acc:
+            angle = speed_to_angle(v_min_next)
+    else:
+        if filter_dec:
+            angle = 0
+        elif filter_acc:
+            angle = 90
+
+    # one that only accelerates for you 
+    # if you are going fast enough for the loop then it lets you do it if not, 
+    # you need to figure out what the point of no return is 
 
 
     # print("points", s_point)
+    
     
     # angle of vmin or vmax [of next segment]
     # use the slope and intercept to set an angle that makes the acceleration smooth
@@ -295,16 +323,16 @@ def callback(data, ser):
     
     # Safety intervention switching-typ logic (either max accel or min decel)
     try:
-        if filter_dec:
-            angle= 0
-            print("Override control with max deccel")
+        if filter_dec or filter_acc:
+            # angle= 0
+            print("Safety filter override")
             ser.write(pack('3B', 255, angle, 255))
             time.sleep(.1)
-        elif filter_acc:
-            angle=90
-            print("Override control with max accel")
-            ser.write(pack('3B', 255, angle, 255))
-            time.sleep(.1)
+        # elif filter_acc:
+        #     # angle=90
+        #     print("Override control with accel")
+        #     ser.write(pack('3B', 255, angle, 255))
+        #     time.sleep(.1)
 
     # try:
 
