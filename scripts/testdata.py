@@ -60,7 +60,7 @@ complete_positions = file[['.transform.translation.x', '.transform.translation.y
 complete_array = complete_positions.to_numpy()
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-sc = ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2], c=file['v_magnitude'], cmap='viridis')
+#sc = ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2], c=file['v_magnitude'], cmap='viridis')
 
 
 # print the first point in the complete_array
@@ -133,6 +133,7 @@ file['vz'] = file['.transform.translation.z'].diff() /1000 / file['delta_t']
 file['v_magnitude'] = np.sqrt(file['vx']**2 + file['vy']**2 + file['vz']**2)
 #see the first five rows
 # print(file.head())
+
 
 
 
@@ -274,7 +275,7 @@ crash_vel = [[] for _ in range(len(segments))]
 # Create a new matplotlib figure and 3D axis
 
 # Scatter plot using 'x', 'y', 'z' columns, 'c' to color code by velocity 
-# sc = ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2], c=file['v_magnitude'], cmap='viridis')
+sc = ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2], c=file['v_magnitude'], cmap='viridis')
 # Create a colorbar to show the time values
 cbar = plt.colorbar(sc)
 cbar.set_label('Velocity')
@@ -283,7 +284,7 @@ ax.set_xlabel('X position')
 ax.set_ylabel('Y position')
 ax.set_zlabel('Z position')
 # Set title
-ax.set_title('Robot Position Over Time')
+ax.set_title('Crashing Point')
 # Draw the rectangle on the xy plane
 draw_rectangle(ax, line_1, z=0)
 # Draw the rectangle on the xy plane
@@ -522,7 +523,7 @@ for f in  csv_files:
     # print("angle", angle_degrees)
 
     #plot the crash 
-    # ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
+    ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
 
 
     
@@ -611,12 +612,12 @@ for f in  csv_files:
             # print("shape of pos", positions_reset[i])
             # ax.plot(closest_point[0], closest_point[1], closest_point[2], 'ro', markersize=10)
             # ax.plot(positions_reset[i][0], positions_reset[i][1], positions_reset[i][2], 'go', markersize = 10)
-            print("distance to spline", distance)
+            # print("distance to spline", distance)
             # ax.plot(positions_reset[i-2][0], positions_reset[i-2][1], positions_reset[i-2][2], 'wo', markersize = 15)
             # ax.plot(positions_reset[i-1][0], positions_reset[i-1][1], positions_reset[i-1][2], 'ko', markersize = 15)
-            # ax.plot(positions_reset[i+1][0], positions_reset[i+1][1], positions_reset[i+1][2], 'mo', markersize = 15)
+            ax.plot(positions_reset[i-2][0], positions_reset[i-2][1], positions_reset[i-2][2], 'ro', markersize = 10)
 
-            print("point before crash", positions_reset[i-1], positions_reset[i-2])
+            # print("point before crash", positions_reset[i-1], positions_reset[i-2])
 
     
 

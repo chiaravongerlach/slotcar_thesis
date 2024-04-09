@@ -151,6 +151,7 @@ def callback(data, ser):
         prev_points.pop(0)
         control_times.pop(0)
     if len(prev_points) > 1:
+        # telescope average method the same thing as the average of te list 
         avg_ctrl_time = (control_times[-1] - control_times[0]).to_sec()/(len(control_times)-1)
     else:
         avg_ctrl_time = 0.02  # conservative control cycle estimate
@@ -166,7 +167,7 @@ def callback(data, ser):
         # print("time since last cycle", (control_times[-1] - control_times[-2]).to_sec())
         # print("average control cycle time ", avg_ctrl_time)
     else:
-        velocity = 0  # default value for velocioty
+        velocity = 0  # default value for velocity 
     
     # approximate distance traveled since last measurement assuming constant speed
     distance_since_measurement = velocity * delay
@@ -287,18 +288,18 @@ def callback(data, ser):
     # if filter_acc then spped_toangle(vmin of next segment)
     # call speed to angle of (v_ref)
     def speed_to_angle(v_ref, slope, intercept):
-        set_angle = (v_ref - intercept) / slope 
+        set_angle = max(v_ref - intercept, 0) / slope
         angle = int(set_angle)
         return angle 
 
-    intervention_mode = 'smooth'
-    # intervention_mode = 'switch'
+    # intervention_mode = 'smooth'
+    intervention_mode = 'switch'
 
     if intervention_mode == 'smooth':
         if filter_dec:
-            angle = speed_to_angle(v_max_next)
+            angle = speed_to_angle(v_max_next, slope, intercept)
         elif filter_acc:
-            angle = speed_to_angle(v_min_next)
+            angle = speed_to_angle(v_min_next, slope, intercept)
     else:
         if filter_dec:
             angle = 0
@@ -325,7 +326,8 @@ def callback(data, ser):
     try:
         if filter_dec or filter_acc:
             # angle= 0
-            print("Safety filter override")
+            if filter_dec: print("dec")
+            elif filter_acc: print("acc")
             ser.write(pack('3B', 255, angle, 255))
             time.sleep(.1)
         # elif filter_acc:
