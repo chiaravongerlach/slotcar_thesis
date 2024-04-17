@@ -171,56 +171,6 @@ def min_distance_to_spline(point):
 
 
 
-    ######## 
-    # x, y, z = point
-
-    # def distance_function(t): 
-    #     x_t = xspline(t)
-    #     y_t = yspline(t)
-    #     z_t = zspline(t)
-    #     return np.sqrt((x_t-x)**2 + (y_t-y)**2 + (z_t-z)**2)
-    # black box optimization
-
-    #minimize scalar 
-    # res = minimize_scalar(distance_function, bounds = t_bounds, method='bounded', options={'maxiter': 5000}, bracket = (4,5))
-    # global minimizer 
-
-    # bounds = [(complete_time[0], complete_time[-1])]
-    # kwargs = {"method": "L-BFGS-B", "bounds": bounds}
-    # x_init =[0]
-    # # res = differential_evolution(distance_function, bounds)
-    # time, fval, _, _ = fminbound(distance_function, 4, 6, full_output = 1)
-    # res = basinhopping(distance_function, x_init, minimizer_kwargs=kwargs, niter=500, stepsize =19)
-    # intervals = [(0, 3), (2, 5), (4, 6), (6, complete_time[-1])]
-    # minimum_distance = np.inf
-    # min_time = 0
-    # for interval in intervals:
-    #     time, distance, _, _ = fminbound(distance_function, interval[0], interval[1], full_output = 1)
-    #     if distance < minimum_distance:
-    #         minimum_distance = distance
-    #         min_time = time
-    
-
-    # print("nit", res.nit)
-    # print("res.x", res.x)
-    # print("tbounds", t_bounds)
-    # ax.plot(xspline(res.x), yspline(res.x), zspline(res.x), 'ro')
-
-    # #testing to see that our spline works and the result is that for an arbitrary point our spline has  a very similiar point 
-    # print("distance 7", distance_function(7))
-    # print("distance 0", distance_function(0))
-    # print("distance 3", distance_function(5))
-    # print("time", complete_time[540])
-    # print("point at 100", complete_array[540])
-    # print("spline at time 100", xspline(complete_time[540]), yspline(complete_time[540]), zspline(complete_time[540]))
-    # print("distance to 100", distance_function(complete_time[540]))
-    # # res.x is the time along my spline that corresponds to the shortest distance on the spline to my point
-    # print("spline at time", xspline(res.x), yspline(res.x), zspline(res.x))
-    #return res.fun, res.x
-    # return minimum_distance, min_time
-    
-
-
 #********** Function to draw each segement of the track  **********
 def draw_rectangle(ax, corners, z=0):
     """ Take in the matplotlib 3D axis: ax,
@@ -275,26 +225,26 @@ crash_vel = [[] for _ in range(len(segments))]
 # Create a new matplotlib figure and 3D axis
 
 # Scatter plot using 'x', 'y', 'z' columns, 'c' to color code by velocity 
-# sc = ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2], c=file['v_magnitude'], cmap='viridis')
+sc = ax.scatter(complete_array[:,0], complete_array[:,1],complete_array[:,2], c=file['v_magnitude'], cmap='viridis')
 # Create a colorbar to show the time values
-# cbar = plt.colorbar(sc)
-# cbar.set_label('Velocity')
+cbar = plt.colorbar(sc)
+cbar.set_label('Velocity')
 # Set labels for axes
 ax.set_xlabel('X position')
 ax.set_ylabel('Y position')
 ax.set_zlabel('Z position')
 # Set title
-ax.set_title('All Crashing Runs')
+ax.set_title('Crashing Point')
 # Draw the rectangle on the xy plane
-# draw_rectangle(ax, line_1, z=0)
-# # Draw the rectangle on the xy plane
-# draw_rectangle(ax, line_2, z=0)
-# # Draw the rectangle on the xy plane
-# draw_rectangle(ax, turn_1, z=0)
-# # Draw the rectangle on the xy plane
-# draw_rectangle(ax, turn_2, z=0)
-# # Draw the rectangle on the xy plane
-# draw_rectangle(ax, loop, z=0)
+draw_rectangle(ax, line_1, z=0)
+# Draw the rectangle on the xy plane
+draw_rectangle(ax, line_2, z=0)
+# Draw the rectangle on the xy plane
+draw_rectangle(ax, turn_1, z=0)
+# Draw the rectangle on the xy plane
+draw_rectangle(ax, turn_2, z=0)
+# Draw the rectangle on the xy plane
+draw_rectangle(ax, loop, z=0)
 ## plot the spline 
 #make time vector 
 plot_time = np.arange(t_bounds[0], t_bounds[1], 0.01)
@@ -336,7 +286,7 @@ def csv_to_numpy_array_time(df):
 
 #********** Iterate Through Runs  **********
 # To get all csv files in folder "processing"
-path = '../march 8 recordings'
+path = '../experiments/NF - F/smooth/bryan'
 csv_files = glob.glob(path + "/*.csv")
 
 
@@ -352,32 +302,8 @@ for f in  csv_files:
     
     # ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
 
-    #****** old way of doing relative
-    # print("shape before", positions_reset.shape)
-    # #rotate relative to complete run 
-    # x = df['.transform.rotation.x'][0]
-    # y = df['.transform.rotation.y'][0]
-    # z = df['.transform.rotation.z'][0]
-    # w = df['.transform.rotation.w'][0]
-    # #get yaw from quaternions in radians 
-    # yaw_new=math.atan2(2 * (w*z+x*y), w*w+x*x-y*y-z*z)
-    # yaw_new = yaw_new*180/math.pi
-    # print("yaw", yaw_new)
-    # # make rotation matrix 
-    # rotation = R.from_euler('z', yaw - yaw_new, degrees = True)
-    # #rotate each point 
-    # positions_reset = rotation.apply(positions_reset)
-    # print("shape after", positions_reset.shape)
-
- 
-
-    #FILTER
 
     
-
-    #to deal with the outliers that can falsely say we crashed before we did we check the distance for each point to the point before 
-    # andw the point after and if both distances are greater than 3 centimeters then we skip over this point so that we dont 
-    # count that as the crash 
 
     #Duy : outliers
 
@@ -463,32 +389,6 @@ for f in  csv_files:
     time_csv = np.array(filtered_time)
     
 
-
-
-
-
-
-
-
-
-        
-        
-        # #calculate distance to next point
-        # next_outlier = True
-        # prev_outlier = True
-        # if s < len(positions_reset) - 1:
-        #     next_dist = np.linalg.norm(positions_reset[s] - positions_reset[s+1])
-        #     if next_dist < 0.03:
-        #         next_outlier = False
-        # if s > 0:
-        #     prev_dist = np.linalg.norm(positions_reset[s] - positions_reset[s-1])
-        #     if prev_dist < 0.03:
-        #         prev_outlier = False
-        
-        # if not next_outlier or not prev_outlier:
-        #     filtered_points.append(positions_reset[s])
-      
-
     # find a straight segment in the path of the first line segment and make a line between the two points. then find the yaw of that 
     # and make the starting position of that yaw the same as the starting position of the complete run yaw 
     for point in positions_reset:
@@ -526,96 +426,22 @@ for f in  csv_files:
     ax.scatter(positions_reset[:,0], positions_reset[:,1],positions_reset[:,2])
 
 
-    
-
-
-
-    
-
-
 
     # go through every point and see how far you are from the spline 
 
     for i in range(len(positions_reset)):
 
 
-        # if i > 2:
-        #     vector_between_points = positions_reset[i-1] - positions_reset[i-2]
-        #     extra_pt = vector_between_points + positions_reset[i-1]
-        #     distance_to_extra =np.linalg.norm(positions_reset[i]-extra_pt)
-        #     distance_of_vector = np.linalg.norm(vector_between_points)
-        #     # print("distance of extra, vector", distance_to_extra, distance_of_vector)
-        #     if (distance_to_extra < 0.5*distance_of_vector+0.01):
-        #         filtered_points.append(positions_reset[i])
-        #         filtered_time.append(time_csv[i])
-
-
-
-
-        # # FILTERING 
-        # if i < 2:
-
-        #     filtered_points.append(positions_reset[i])
-        #     filtered_time.append(time_csv[i])
-        #     continue
-        
-    
-
-        # vector_between_points = filtered_points[-1] - filtered_points[-2]
-        # extra_pt = vector_between_points + positions_reset[i-1]
-        # distance_to_extra =np.linalg.norm(positions_reset[i]-extra_pt)
-        # distance_of_vector = np.linalg.norm(vector_between_points)
-        # # print("distance of extra, vector", distance_to_extra, distance_of_vector)
-        # if (distance_to_extra < 0.5*distance_of_vector+0.01):
-        #     filtered_points.append(positions_reset[i])
-        #     filtered_time.append(time_csv[i])
-        # else:
-        #     outlier_tospline_distance, closest_point = min_distance_to_spline(positions_reset[i])
-        #     print("distance of point", positions_reset[i], outlier_tospline_distance)
-        #     if (outlier_tospline_distance < .03):
-        #         filtered_points.append(positions_reset[i])
-        #         filtered_time.append(time_csv[i])
-
-
-
-        #print("shape of point", positions_reset[i].shape)
-        
-
-    
-        #curve
-        # closest_point, distance_array = curve.projectPoint(positions_reset[i])
-        # distance = np.linalg.norm(distance_array)
-        # print(" distance array", distance_array)
-        # ## for second point 
-        # closest_point_1, distance_array_1 = curve.projectPoint(positions_reset[i+10])
-        # distance_1 = np.linalg.norm(distance_array_1)
-        # # for third points
-        # closest_point_2, distance_array_2 = curve.projectPoint(positions_reset[i+15])
-        # distance_2 = np.linalg.norm(distance_array_2)
-
-
-
-        #lsq
-        # print("point we call distance function on", positions_reset[i])
         distance, closest_point = min_distance_to_spline(positions_reset[i])
-        # print("distance of that point", distance)
-      
-        # print("**********************")
-        
-        # print("distance to spline =  %s" % distance)
-        # print("spline x at that time  =  %s" % xspline(time[i]))
-        # print("spline y at that time  =  %s" % yspline(time[i]))
-        # print("spline z at that time  =  %s" % zspline(time[i]))
-        #check if distance is over threshold, 5 cm
+     
         if distance > 0.06: # and distance_1 > 0.01 and distance_2 > 0.01 :
-            # print("index", i)
-            # print("shape of pos", positions_reset[i])
+           
             # ax.plot(closest_point[0], closest_point[1], closest_point[2], 'ro', markersize=10)
             # ax.plot(positions_reset[i][0], positions_reset[i][1], positions_reset[i][2], 'go', markersize = 10)
             # print("distance to spline", distance)
             # ax.plot(positions_reset[i-2][0], positions_reset[i-2][1], positions_reset[i-2][2], 'wo', markersize = 15)
             # ax.plot(positions_reset[i-1][0], positions_reset[i-1][1], positions_reset[i-1][2], 'ko', markersize = 15)
-            # ax.plot(positions_reset[i-2][0], positions_reset[i-2][1], positions_reset[i-2][2], 'ro', markersize = 10)
+            ax.plot(positions_reset[i-2][0], positions_reset[i-2][1], positions_reset[i-2][2], 'ro', markersize = 10)
 
             # print("point before crash", positions_reset[i-1], positions_reset[i-2])
 
@@ -642,23 +468,7 @@ for f in  csv_files:
             total_time = time_csv[i-4] - time_csv[i-10]
             velocity = distance_traveled/total_time
                 
-                
-            #     temp = np.linalg.norm(positions_reset[r+1] - positions_reset[r]) / time[r]
-            #     # print("distance", np.linalg.norm(positions_reset[r+1] - positions_reset[r]))
-            #     # print("time", time[r])
-            #     # print("pos", temp)
-            #     pos += np.linalg.norm(positions_reset[r+1] - positions_reset[r]) / time[r]
-            # velocity = pos /5
-            #for one velocity 
-            # time_diff = time_csv[i-11] - time_csv[i-8]
-            # velocity = distance_traveled/ time_diff
-         
 
-
-            
-            #get the velocity a few time steps before 
-
-            
 
 
 
@@ -711,13 +521,6 @@ for i, velocities in enumerate(crash_vel):
 print(final_crashing_velocities)
 
 
-# find arbitrary point 
-# pt = np.array([-0.14055614, -0.96742137,  0.07481665])
-# distance_to_arbitrary, closest_point = min_distance_to_spline(pt)
-# ax.plot(pt[0], pt[1], pt[2], 'ko')
-# print("distance", distance_to_arbitrary)
-    
-    
 
 
 
@@ -726,32 +529,3 @@ plt.show()
 
 
 
-
-
-# import the complete csv file 
-# import the multiple runs csv file 
-# take xyz points from both and place them both in 2d seperate numpy arrays (for the next csv file only do this for the multiple runs)
-# do for loop that iterates through each row in numpy array of multiple run array and takes each row and subtracts it from the complete run 
-# 
-# complete = np.aray of complete run 
-# complete - <name of multiple run array>[i]
-# ^ will return np array of shape complete and from that take the magnitude 
-# axis is either 0 or 1 
-# magnitude = np.linalg.norm(name of array, axis = 0 or 1)
-# then find the minimum. this is the smallest distance. min = np.min(magnitude) returns scalar
-# check if min distance is more than threshold, if so it fell off the track 
-#   so now you know for that i you fell off the track 
-    # cehck what zone it is in 
-    #check how fast it was going by calculating the velocity from the original multiple runs np array with x,y,z 
-    # append that velocity to a nested 
-
-    
-# now each csv file that i use will append one number to crash_vel so i need a lot of csv files that i can pit this whole thing into another for 
-# loop that goes through the csv files and finds the crashing velocities 
-            
-# for the loop when i find my crash use a point i-10 and find that velocity to append 
-# once i have this big crash_vel i need to find some data processing to first get rid of outliers and maybe take the min for each one - something to make sure its safe 
-
-# for each row in the multiple csv file I will take each point and find the closest point on the complete csv file 
-# #gpt code for transforming the xyz from df file into numpy array 
-            

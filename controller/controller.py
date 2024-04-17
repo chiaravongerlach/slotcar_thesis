@@ -292,8 +292,8 @@ def callback(data, ser):
         angle = int(set_angle)
         return angle 
 
-    # intervention_mode = 'smooth'
-    intervention_mode = 'switch'
+    intervention_mode = 'smooth'
+    # intervention_mode = 'switch'
 
     if intervention_mode == 'smooth':
         if filter_dec:
@@ -367,7 +367,7 @@ def listener(ser):
 
 if __name__ == '__main__':
     try:
-        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/tty.usbmodem1101', write_timeout=0.2)
+        ser=serial.Serial(baudrate='9600', timeout=.5, port='/dev/tty.usbmodem101', write_timeout=0.2)
     except:
         print('Port open error')
     listener(ser)
